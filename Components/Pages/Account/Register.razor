@@ -1,0 +1,121 @@
+﻿@page "/register"
+@using System.ComponentModel.DataAnnotations
+@using MCPowerlifting.Data
+@using MCPowerlifting.Models.Entities
+@using MCPowerlifting.Models.ViewModels
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+
+<div class="row">
+    <div class="col-lg-4 offset-lg-4 pt-4 pb-4 border">
+        <EditForm Model="@Model" OnValidSubmit="RegisterUser" FormName="RegisterForm">
+            <DataAnnotationsValidator />
+            <div class="mb-3 text-center flex-column">
+                <img src="" alt="RegisterAvatar" style="max-height:5rem;" />
+                <h3>REGISTER</h3>
+            </div>
+
+            <div class="mb-3">
+                <label>User Name</label>
+                <InputText @bind-Value="Model.UserName" class="form-control" placeholder="Username" />
+                <ValidationMessage For="() => Model.UserName" />
+            </div>
+
+            <div class="mb-3">
+                <label>Email</label>
+                <InputText @bind-Value="Model.Email" class="form-control" placeholder="Email" />
+                <ValidationMessage For="() => Model.Email" />
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <InputText @bind-Value="Model.Password" placeholder="Password" type="password" class="form-control" />
+                <ValidationMessage For="() => Model.Password" />
+            </div>
+
+            <div class="mb-3">
+                <label>Confirm Password</label>
+                <InputText @bind-Value="Model.ConfirmPassword" placeholder="Confirm Password" type="password" class="form-control" />
+                <ValidationMessage For="() => Model.ConfirmPassword" />
+            </div>
+
+            <div class="mb-3 text-center">
+                <span class="text-danger">@errorMessage</span>
+            </div>
+
+            <div class="mb-3 d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Register</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    [SupplyParameterFromForm]
+    public RegisterViewModel Model { get; set; } = new();
+
+    private string? errorMessage;
+
+    private async Task RegisterUser()
+    {
+
+        // Email-Validation
+        if (!new EmailAddressAttribute().IsValid(Model.Email))
+        {
+            errorMessage = "Invalid Email Address";
+            return;
+        }
+
+        // User-Validation
+        var existingUser = await appDbContext.Users
+                            .FirstOrDefaultAsync(u => u.Email == Model.Email);
+
+        if (existingUser != null)
+        {
+
+            errorMessage = "This E-mail adress is already in Use";
+
+            return;
+        }
+        // Password-Validation
+        if (Model.Password != Model.ConfirmPassword)
+        {
+
+            errorMessage = "Passwords do not match";
+
+            return;
+        }
+
+
+        // Password-Hashing
+        Model.passwordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(Model.Password, 13);
+
+        User newUser = new User
+            {
+                Username = Model.UserName,
+                Email = Model.Email,
+                Passwordhash = Model.passwordHash,
+                Role = "user"
+            };
+
+        // Hinzufügen des neuen Users
+        appDbContext.Users.Add(newUser);
+
+        try
+        {
+            await appDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred while registering. Please try again";
+        }
+
+
+        navigationManager.NavigateTo("/login");
+    }
+}

@@ -1,0 +1,77 @@
+﻿@page "/login"
+@using MCPowerlifting.Data
+@using MCPowerlifting.Models.ViewModels
+@using System.Security.Claims
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+
+
+<div class="row d-flex justify-content-center">
+    <div class="card" style="max-width:50rem;">
+        <div class="card-body d-flex justify-content-center align-items-center flex-column">
+            <EditForm Model="@Model" OnValidSubmit="Authenticate" FormName="LoginForm">
+                <DataAnnotationsValidator />
+                <div class="row d-flex justify-content-center">
+                    <img src="img/loginIcon.png" alt="LoginPicture" style="max-height:10rem; max-width:10rem;" />
+                    <h3 class="text-center">Login</h3>
+                </div>
+                <div class="row d-flex justify-content-center">
+                    <label>User Name</label>
+                    <InputText @bind-Value="Model.UserName" class="form-control" placeholder="Username..."/>
+                    <ValidationMessage For="() => Model.UserName" />
+                </div>
+                <div class="row d-flex justify-content-center">
+                    <label>Password</label>
+                    <InputText @bind-Value="Model.Password" placeholder="Password" typeof="password" class="form-control" />
+                    <ValidationMessage For="() => Model.Password" />
+                </div>
+                <div class="mb-3 text-center">
+                    <span class="test-danger">@errorMessage</span>
+                </div>
+                <div class="row d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+                <div>
+                    <p>
+                        Don't have an account? <a href="/register">Register</a> here for free!
+                    </p>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    [SupplyParameterFromForm]
+    public LoginViewModel Model { get; set; } = new LoginViewModel();
+
+    private string? errorMessage;
+
+    private async Task Authenticate()
+    {
+        var userAccount = appDbContext.Users.Where(x => x.Username == Model.UserName).FirstOrDefault();
+
+        var passwordHash = BCrypt.Net.BCrypt.EnhancedVerify(Model.Password, userAccount.Passwordhash);
+
+        if (userAccount is null || !passwordHash)
+        {
+            errorMessage = "Invalid Username or Password";
+            return;
+        }
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, Model.UserName),
+            new Claim(ClaimTypes.Role, userAccount.Role)
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        await HttpContext.SignInAsync(principal);
+        navigationManager.NavigateTo("/");
+    }
+}
