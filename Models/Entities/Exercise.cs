@@ -1,5 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MCPowerlifting.Models.Entities
 {
@@ -35,7 +35,7 @@ namespace MCPowerlifting.Models.Entities
         [Required]
         [Column("is_successful")]
         public bool IsSuccessful { get; set; }
-        
+
         [Required]
         [Column("increment")]
         public float Increment { get; set; }

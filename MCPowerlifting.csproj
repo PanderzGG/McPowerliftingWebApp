@@ -17,14 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Components\Pages\Kalendar\" />
+    <Folder Include="Components\Pages\History\" />
     <Folder Include="Components\Pages\Workout\" />
-    <Folder Include="Migrations\" />
-    <Folder Include="wwwroot\img\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="wwwroot\img\loginIcon.png" />
   </ItemGroup>
 
 </Project>

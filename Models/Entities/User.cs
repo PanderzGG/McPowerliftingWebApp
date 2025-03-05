@@ -41,7 +41,5 @@ namespace MCPowerlifting.Models.Entities
             Equipments = new List<Equipment>();
             Workouts = new List<Workout>();
         }
-
-
     }
 }

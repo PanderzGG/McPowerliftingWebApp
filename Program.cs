@@ -2,6 +2,7 @@ using MCPowerlifting.Components;
 using MCPowerlifting.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,7 +42,7 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
-// Middleware
+//MiddleWare
 app.UseAuthentication();
 app.UseAuthorization();
 

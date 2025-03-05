@@ -1,7 +1,6 @@
 ﻿@page "/login"
 @using MCPowerlifting.Data
 @using MCPowerlifting.Models.ViewModels
-@using System.Security.Claims
 @inject AppDbContext appDbContext
 @inject NavigationManager navigationManager
 
@@ -17,7 +16,7 @@
                 </div>
                 <div class="row d-flex justify-content-center">
                     <label>User Name</label>
-                    <InputText @bind-Value="Model.UserName" class="form-control" placeholder="Username..."/>
+                    <InputText @bind-Value="Model.UserName" class="form-control" placeholder="Username..." />
                     <ValidationMessage For="() => Model.UserName" />
                 </div>
                 <div class="row d-flex justify-content-center">
@@ -54,11 +53,17 @@
     {
         var userAccount = appDbContext.Users.Where(x => x.Username == Model.UserName).FirstOrDefault();
 
+        if(userAccount is null){
+            errorMessage = "User does not exist";
+            return;
+        }
+
         var passwordHash = BCrypt.Net.BCrypt.EnhancedVerify(Model.Password, userAccount.Passwordhash);
 
-        if (userAccount is null || !passwordHash)
+
+        if (!passwordHash)
         {
-            errorMessage = "Invalid Username or Password";
+            errorMessage = "Invalid Password";
             return;
         }
 
@@ -72,6 +77,17 @@
         var principal = new ClaimsPrincipal(identity);
 
         await HttpContext.SignInAsync(principal);
-        navigationManager.NavigateTo("/");
+
+        bool hasProgram = appDbContext.WorkoutPrograms.Where(x => x.UserId == userAccount.UserId).Any();
+
+        if(!hasProgram)
+        {
+            navigationManager.NavigateTo("/create-program");
+        }
+        else
+        {
+            navigationManager.NavigateTo("/");
+        }
+        
     }
 }
