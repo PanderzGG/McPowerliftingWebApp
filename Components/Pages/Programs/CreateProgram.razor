@@ -1,0 +1,59 @@
+﻿@page "/create-program"
+@using MCPowerlifting.Data
+@using MCPowerlifting.Helper
+@inject AppDbContext appDbContext
+
+@* Bei einem Dropdown-Menu ist es wichtig data-toggle="dropdown" zu verwenden. Ansonsten funktioniert das ganze nicht *@
+<div class="card">
+    <div class="card-header">
+        <h2>Welcome to MCPowerlifting</h2>
+    </div>
+    <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+                <label>Available Programs</label>
+                <select class="form-select" aria-label="Default select example">
+                    <option selected>Chose your Program</option>
+                    @foreach (var program in programs.AllPrograms)
+                    {
+                        <option value="@program.Key">@program.Value</option>
+                    }
+                </select>
+            </li>
+            <li hidden="@Hide">
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" placeholder="20,00" aria-label="20,00" aria-describedby="basic-addon1">
+                    <span class="input-group-text" id="basic-addon1">kg</span>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+
+
+
+@code {
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    public AvailablePrograms programs = new AvailablePrograms();
+
+    private bool Hide { get; set; } = true;
+
+    public async Task hasEquipment()
+    {
+        var userID = HttpContext.User.FindFirst("UserId")?.Value;
+        var hasEquipment = appDbContext.Equipments.Where(x => x.UserId == int.Parse(userID)).Any();
+
+        if (!hasEquipment)
+        {
+            Hide = false;
+        }
+        else
+        {
+            Hide = true;
+        }
+
+        StateHasChanged();
+    }
+}
