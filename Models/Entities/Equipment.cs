@@ -8,10 +8,10 @@ namespace MCPowerlifting.Models.Entities
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Column("equipmeint_id")]
+        [Column("equipment_id")]
         public int EquipmentId { get; set; }
 
-        [ForeignKey("user_id")]
+        [Required]
         [Column("user_id")]
         public int UserId { get; set; }
 
@@ -19,12 +19,11 @@ namespace MCPowerlifting.Models.Entities
         [Column("bar_weight")]
         public float BarWeight { get; set; }
 
-        [Required]
         [Column("updated_at")]
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
 
+        // Navigation
         public User? User { get; set; }
-
         public ICollection<Plate> Plates { get; set; }
 
         public Equipment()

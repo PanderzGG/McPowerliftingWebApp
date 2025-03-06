@@ -57,7 +57,7 @@
     public HttpContext? HttpContext { get; set; }
 
     [SupplyParameterFromForm]
-    public RegisterViewModel Model { get; set; } = new();
+    public RegisterViewModel Model { get; set; } = new RegisterViewModel();
 
     private string? errorMessage;
 
@@ -92,7 +92,7 @@
         }
 
 
-        // Password-Hashing
+        // Password-Hashing TODO USE THE ACTUAL CLASS DUMMY
         Model.passwordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(Model.Password, 13);
 
         User newUser = new User
@@ -115,7 +115,7 @@
             errorMessage = "An error occurred while registering. Please try again";
         }
 
-
+        
         navigationManager.NavigateTo("/login");
     }
 }

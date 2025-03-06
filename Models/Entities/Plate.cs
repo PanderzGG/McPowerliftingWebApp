@@ -11,7 +11,7 @@ namespace MCPowerlifting.Models.Entities
         [Column("plate_id")]
         public int PlateId { get; set; }
 
-        [ForeignKey("equipment_id")]
+        [Required]
         [Column("equipment_id")]
         public int EquipmentId { get; set; }
 
@@ -23,6 +23,7 @@ namespace MCPowerlifting.Models.Entities
         [Column("plate_count")]
         public int PlateCount { get; set; }
 
+        // Navigation
         public Equipment? Equipment { get; set; }
     }
 }

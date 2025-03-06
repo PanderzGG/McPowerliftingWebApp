@@ -1,7 +1,13 @@
 ﻿@page "/create-program"
+@rendermode InteractiveServer
 @using MCPowerlifting.Data
 @using MCPowerlifting.Helper
+@using MCPowerlifting.Models.Entities
+@using MCPowerlifting.Models.ViewModels
+@using MCPowerlifting.Services
+@inject UserService Userservice
 @inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
 
 @* Bei einem Dropdown-Menu ist es wichtig data-toggle="dropdown" zu verwenden. Ansonsten funktioniert das ganze nicht *@
 <div class="card">
@@ -12,7 +18,7 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
                 <label>Available Programs</label>
-                <select class="form-select" aria-label="Default select example">
+                <select @onchange="ProgramSelected" class="form-select" aria-label="Default select example">
                     <option selected>Chose your Program</option>
                     @foreach (var program in programs.AllPrograms)
                     {
@@ -20,40 +26,160 @@
                     }
                 </select>
             </li>
-            <li hidden="@Hide">
+            <li class="list-group-item">
+                <label>How heavy is you bar?</label>
                 <div class="input-group mb-3">
-                    <input type="number" class="form-control" placeholder="20,00" aria-label="20,00" aria-describedby="basic-addon1">
+                    <input @bind-value="Model.BarWeight" @bind-value:event="oninput" type="number" class="form-control" placeholder="20,00" aria-label="20,00">
                     <span class="input-group-text" id="basic-addon1">kg</span>
                 </div>
-            </li>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#CreateProgramModal" @onclick="CreateProgramPlan">
+                    Create Program
+                </button>
+            </li> 
         </ul>
     </div>
 </div>
 
+<!-- Modal -->
+<div class="modal fade" id="CreateProgramModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Program Validation</h5>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h2>Are these the correct values?</h2>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <div>
+                            <h4>Username:</h4>
+                        </div>
+                        <div>
+                            <p>@Model.UserName</p>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <div>
+                            <h4>Program:</h4>
+                        </div>
+                        <div>
+                            <p class="">@Model.ProgramName</p>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <div>
+                            <h4>Bar weight:</h4>
+                        </div>
+                        <div>
+                            <p>@Model.BarWeight kg</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" @onclick="SaveNewProgram">Save Program</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 @code {
-    [CascadingParameter]
-    public HttpContext? HttpContext { get; set; }
+    [SupplyParameterFromForm]
+    public BeginProgramViewModel Model { get; set; } = new BeginProgramViewModel();
 
     public AvailablePrograms programs = new AvailablePrograms();
 
+    private int ProgramSelection { get; set; }
     private bool Hide { get; set; } = true;
 
-    public async Task hasEquipment()
+    private async Task CreateProgramPlan()
     {
-        var userID = HttpContext.User.FindFirst("UserId")?.Value;
-        var hasEquipment = appDbContext.Equipments.Where(x => x.UserId == int.Parse(userID)).Any();
-
-        if (!hasEquipment)
+        var userId = Userservice.GetCurrentUserId();
+        if (userId.HasValue)
         {
-            Hide = false;
+            Model.UserId = userId.Value;
+
+            // Benutzernamen abfragen
+            var user = await appDbContext.Users.FindAsync(userId.Value);
+            Model.UserName = user?.Username ?? "Unbekannter Benutzer";
+        }
+    }
+
+    private void ProgramSelected(ChangeEventArgs e)
+    {
+        if(int.TryParse(e.Value?.ToString(), out int selectedValue))
+        {
+            ProgramSelection = selectedValue;
+            Model.ProgramName = programs.AllPrograms[ProgramSelection];
+        }
+
+    }
+
+    private async Task SaveNewProgram()
+    {
+        if (Model.BarWeight <= 0)
+        {
+            return;
+        }
+
+        if (Model.ProgramName == null || Model.ProgramName == "Choose your Program")
+        {
+            return;
+        }
+
+        switch (Model.ProgramName)
+        {
+            case "MadCow 5x5":
+                Model.Description = "Madcow 5x5 is a strength program that uses a 5x5 rep scheme. It is designed to be run for 12 weeks.";
+                break;
+            case "Stronglifts 5x5":
+                Model.Description = "Stronglifts 5x5 is a strength program that uses a 5x5 rep scheme. It is designed to be run for 12 weeks.";
+                break;
+            default:
+                Model.Description = "No description available";
+                break;
+        }
+
+        // Speichern des Programms
+
+        WorkoutProgram newProgram = new WorkoutProgram
+        {
+            Name = Model.ProgramName,
+            UserId = Model.UserId,
+            Description = Model.Description
+        };
+
+        Equipment newEquipment = new Equipment
+            {
+                BarWeight = Model.BarWeight,
+                UserId = Model.UserId
+            };
+
+        appDbContext.WorkoutPrograms.Add(newProgram);
+        appDbContext.Equipments.Add(newEquipment);
+
+        try
+        {
+            await appDbContext.SaveChangesAsync();
+        }
+        catch(Exception ex)
+        {
+            return;
+        }
+
+        Equipment equipment = await appDbContext.Equipments.Where(equipment => equipment.UserId == Model.UserId).FirstOrDefaultAsync();
+        bool equipmentHasPlates = await appDbContext.Plates.Where(plates => plates.EquipmentId == equipment.EquipmentId).AnyAsync();
+
+        if (!equipmentHasPlates)
+        {
+            navigationManager.NavigateTo("/create-plates");
         }
         else
         {
-            Hide = true;
+            navigationManager.NavigateTo("/");
         }
-
-        StateHasChanged();
     }
 }

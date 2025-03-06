@@ -7,12 +7,29 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MCPowerlifting.Migrations
 {
     /// <inheritdoc />
-    public partial class InitMigration : Migration
+    public partial class InitMigrationv001 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterDatabase()
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "exercises",
+                columns: table => new
+                {
+                    exercise_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    exercise_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    category = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_exercises", x => x.exercise_id);
+                })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
@@ -40,15 +57,15 @@ namespace MCPowerlifting.Migrations
                 name: "equipment",
                 columns: table => new
                 {
-                    equipmeint_id = table.Column<int>(type: "int", nullable: false)
+                    equipment_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     user_id = table.Column<int>(type: "int", nullable: false),
                     bar_weight = table.Column<float>(type: "float", nullable: false),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_equipment", x => x.equipmeint_id);
+                    table.PrimaryKey("PK_equipment", x => x.equipment_id);
                     table.ForeignKey(
                         name: "FK_equipment_user_accounts_user_id",
                         column: x => x.user_id,
@@ -64,12 +81,11 @@ namespace MCPowerlifting.Migrations
                 {
                     program_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    user_id = table.Column<int>(type: "int", nullable: false),
                     name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    description = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
+                    description = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    starting_weight = table.Column<float>(type: "float", nullable: false)
+                    user_id = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -91,7 +107,7 @@ namespace MCPowerlifting.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     user_id = table.Column<int>(type: "int", nullable: false),
                     date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Notes = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: false)
+                    notes = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     load = table.Column<int>(type: "int", nullable: false)
                 },
@@ -124,31 +140,69 @@ namespace MCPowerlifting.Migrations
                         name: "FK_plates_equipment_equipment_id",
                         column: x => x.equipment_id,
                         principalTable: "equipment",
-                        principalColumn: "equipmeint_id",
+                        principalColumn: "equipment_id",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "exercises",
+                name: "program_exercises",
                 columns: table => new
                 {
-                    exercise_id = table.Column<int>(type: "int", nullable: false)
+                    program_exercise_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    workout_id = table.Column<int>(type: "int", nullable: false),
-                    exercise_name = table.Column<string>(type: "varchar(70)", maxLength: 70, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    weight = table.Column<float>(type: "float", nullable: false),
-                    sets = table.Column<int>(type: "int", nullable: false),
-                    reps = table.Column<int>(type: "int", nullable: false),
-                    is_successful = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    increment = table.Column<float>(type: "float", nullable: false)
+                    program_id = table.Column<int>(type: "int", nullable: false),
+                    exercise_id = table.Column<int>(type: "int", nullable: false),
+                    starting_weight = table.Column<float>(type: "float", nullable: false),
+                    prescribed_sets = table.Column<int>(type: "int", nullable: false),
+                    prescribed_reps = table.Column<int>(type: "int", nullable: false),
+                    progression_notes = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_exercises", x => x.exercise_id);
+                    table.PrimaryKey("PK_program_exercises", x => x.program_exercise_id);
                     table.ForeignKey(
-                        name: "FK_exercises_workouts_workout_id",
+                        name: "FK_program_exercises_exercises_exercise_id",
+                        column: x => x.exercise_id,
+                        principalTable: "exercises",
+                        principalColumn: "exercise_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_program_exercises_programs_program_id",
+                        column: x => x.program_id,
+                        principalTable: "programs",
+                        principalColumn: "program_id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "workoutExercises",
+                columns: table => new
+                {
+                    workout_exercise_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    workout_id = table.Column<int>(type: "int", nullable: false),
+                    exercise_id = table.Column<int>(type: "int", nullable: false),
+                    actual_weight = table.Column<float>(type: "float", nullable: false),
+                    actual_sets = table.Column<int>(type: "int", nullable: false),
+                    actual_reps = table.Column<int>(type: "int", nullable: false),
+                    is_successful = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    notes = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_workoutExercises", x => x.workout_exercise_id);
+                    table.ForeignKey(
+                        name: "FK_workoutExercises_exercises_exercise_id",
+                        column: x => x.exercise_id,
+                        principalTable: "exercises",
+                        principalColumn: "exercise_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_workoutExercises_workouts_workout_id",
                         column: x => x.workout_id,
                         principalTable: "workouts",
                         principalColumn: "workout_id",
@@ -162,19 +216,34 @@ namespace MCPowerlifting.Migrations
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_exercises_workout_id",
-                table: "exercises",
-                column: "workout_id");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_plates_equipment_id",
                 table: "plates",
                 column: "equipment_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_program_exercises_exercise_id",
+                table: "program_exercises",
+                column: "exercise_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_program_exercises_program_id",
+                table: "program_exercises",
+                column: "program_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_programs_user_id",
                 table: "programs",
                 column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_workoutExercises_exercise_id",
+                table: "workoutExercises",
+                column: "exercise_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_workoutExercises_workout_id",
+                table: "workoutExercises",
+                column: "workout_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_workouts_user_id",
@@ -186,19 +255,25 @@ namespace MCPowerlifting.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "exercises");
+                name: "plates");
 
             migrationBuilder.DropTable(
-                name: "plates");
+                name: "program_exercises");
+
+            migrationBuilder.DropTable(
+                name: "workoutExercises");
+
+            migrationBuilder.DropTable(
+                name: "equipment");
 
             migrationBuilder.DropTable(
                 name: "programs");
 
             migrationBuilder.DropTable(
-                name: "workouts");
+                name: "exercises");
 
             migrationBuilder.DropTable(
-                name: "equipment");
+                name: "workouts");
 
             migrationBuilder.DropTable(
                 name: "user_accounts");

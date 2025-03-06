@@ -11,35 +11,23 @@ namespace MCPowerlifting.Models.Entities
         [Column("exercise_id")]
         public int ExerciseId { get; set; }
 
-        [ForeignKey("workout_id")]
-        [Column("workout_id")]
-        public int WorkoutId { get; set; }
-
         [Required]
         [Column("exercise_name")]
-        [MaxLength(70)]
+        [MaxLength(100)]
         public string? ExerciseName { get; set; }
 
-        [Required]
-        [Column("weight")]
-        public float Weight { get; set; }
+        [Column("category")]
+        [MaxLength(50)]
+        public string? Category { get; set; }
 
-        [Required]
-        [Column("sets")]
-        public int Sets { get; set; }
+        // Navigation
+        public ICollection<ProgramExercise> ProgramExercises { get; set; }
+        public ICollection<WorkoutExercise> WorkoutExercises { get; set; }
 
-        [Required]
-        [Column("reps")]
-        public int Reps { get; set; }
-
-        [Required]
-        [Column("is_successful")]
-        public bool IsSuccessful { get; set; }
-
-        [Required]
-        [Column("increment")]
-        public float Increment { get; set; }
-
-        public Workout? Workout { get; set; }
+        public Exercise()
+        {
+            ProgramExercises = new List<ProgramExercise>();
+            WorkoutExercises = new List<WorkoutExercise>();
+        }
     }
 }

@@ -11,7 +11,7 @@ namespace MCPowerlifting.Models.Entities
         [Column("workout_id")]
         public int WorkoutId { get; set; }
 
-        [ForeignKey("user_id")]
+        [Required]
         [Column("user_id")]
         public int UserId { get; set; }
 
@@ -19,29 +19,26 @@ namespace MCPowerlifting.Models.Entities
         [Column("date")]
         public DateTime Date { get; set; }
 
-        [Required]
-        [Column(TypeName = "TEXT")]
-        [StringLength(1000)]
+        [Column("notes")]
         public string? Notes { get; set; }
 
-        [Required]
         [Column("load")]
         public LoadType Load { get; set; }
 
+        // Navigation
         public User? User { get; set; }
-
-        public ICollection<Exercise> Exercises { get; set; }
+        public ICollection<WorkoutExercise> WorkoutExercises { get; set; }
 
         public Workout()
         {
-            Exercises = new List<Exercise>();
+            WorkoutExercises = new List<WorkoutExercise>();
         }
 
         public enum LoadType
         {
-            Heavy = 1,
-            Medium = 2,
-            Light = 3
+            Heavy,
+            Medium,
+            Light
         }
     }
 }

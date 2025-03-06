@@ -1,5 +1,6 @@
 using MCPowerlifting.Components;
 using MCPowerlifting.Data;
+using MCPowerlifting.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -9,6 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<UserService>();
 
 // Auth First Step
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

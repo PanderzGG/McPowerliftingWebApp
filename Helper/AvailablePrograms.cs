@@ -7,7 +7,7 @@
         public AvailablePrograms()
         {
             AllPrograms.Add(1, "MadCow 5x5");
-            AllPrograms.Add(2, "Stronglifts 5x5");
+            AllPrograms.Add(2, "Stronglifts 5x5 (not yet available)");
         }
     }
 }

@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <Folder Include="Components\Pages\History\" />
-    <Folder Include="Components\Pages\Workout\" />
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

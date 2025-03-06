@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MCPowerlifting.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250305173942_InitMigration")]
-    partial class InitMigration
+    [Migration("20250306094824_InitMigrationv001")]
+    partial class InitMigrationv001
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -30,7 +30,7 @@ namespace MCPowerlifting.Migrations
                     b.Property<int>("EquipmentId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("equipmeint_id");
+                        .HasColumnName("equipment_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("EquipmentId"));
 
@@ -38,7 +38,7 @@ namespace MCPowerlifting.Migrations
                         .HasColumnType("float")
                         .HasColumnName("bar_weight");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("updated_at");
 
@@ -62,39 +62,18 @@ namespace MCPowerlifting.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ExerciseId"));
 
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("category");
+
                     b.Property<string>("ExerciseName")
                         .IsRequired()
-                        .HasMaxLength(70)
-                        .HasColumnType("varchar(70)")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("exercise_name");
 
-                    b.Property<float>("Increment")
-                        .HasColumnType("float")
-                        .HasColumnName("increment");
-
-                    b.Property<bool>("IsSuccessful")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_successful");
-
-                    b.Property<int>("Reps")
-                        .HasColumnType("int")
-                        .HasColumnName("reps");
-
-                    b.Property<int>("Sets")
-                        .HasColumnType("int")
-                        .HasColumnName("sets");
-
-                    b.Property<float>("Weight")
-                        .HasColumnType("float")
-                        .HasColumnName("weight");
-
-                    b.Property<int>("WorkoutId")
-                        .HasColumnType("int")
-                        .HasColumnName("workout_id");
-
                     b.HasKey("ExerciseId");
-
-                    b.HasIndex("WorkoutId");
 
                     b.ToTable("exercises");
                 });
@@ -125,6 +104,48 @@ namespace MCPowerlifting.Migrations
                     b.HasIndex("EquipmentId");
 
                     b.ToTable("plates");
+                });
+
+            modelBuilder.Entity("MCPowerlifting.Models.Entities.ProgramExercise", b =>
+                {
+                    b.Property<int>("ProgramExerciseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("program_exercise_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ProgramExerciseId"));
+
+                    b.Property<int>("ExerciseId")
+                        .HasColumnType("int")
+                        .HasColumnName("exercise_id");
+
+                    b.Property<int>("PrescribedReps")
+                        .HasColumnType("int")
+                        .HasColumnName("prescribed_reps");
+
+                    b.Property<int>("PrescribedSets")
+                        .HasColumnType("int")
+                        .HasColumnName("prescribed_sets");
+
+                    b.Property<int>("ProgramId")
+                        .HasColumnType("int")
+                        .HasColumnName("program_id");
+
+                    b.Property<string>("ProgressionNotes")
+                        .HasColumnType("longtext")
+                        .HasColumnName("progression_notes");
+
+                    b.Property<float>("StartingWeight")
+                        .HasColumnType("float")
+                        .HasColumnName("starting_weight");
+
+                    b.HasKey("ProgramExerciseId");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("ProgramId");
+
+                    b.ToTable("program_exercises");
                 });
 
             modelBuilder.Entity("MCPowerlifting.Models.Entities.User", b =>
@@ -183,9 +204,8 @@ namespace MCPowerlifting.Migrations
                         .HasColumnName("load");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("longtext")
+                        .HasColumnName("notes");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int")
@@ -198,6 +218,52 @@ namespace MCPowerlifting.Migrations
                     b.ToTable("workouts");
                 });
 
+            modelBuilder.Entity("MCPowerlifting.Models.Entities.WorkoutExercise", b =>
+                {
+                    b.Property<int>("WorkoutExerciseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("workout_exercise_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("WorkoutExerciseId"));
+
+                    b.Property<int>("ActualReps")
+                        .HasColumnType("int")
+                        .HasColumnName("actual_reps");
+
+                    b.Property<int>("ActualSets")
+                        .HasColumnType("int")
+                        .HasColumnName("actual_sets");
+
+                    b.Property<float>("ActualWeight")
+                        .HasColumnType("float")
+                        .HasColumnName("actual_weight");
+
+                    b.Property<int>("ExerciseId")
+                        .HasColumnType("int")
+                        .HasColumnName("exercise_id");
+
+                    b.Property<bool>("IsSuccessful")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_successful");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("longtext")
+                        .HasColumnName("notes");
+
+                    b.Property<int>("WorkoutId")
+                        .HasColumnType("int")
+                        .HasColumnName("workout_id");
+
+                    b.HasKey("WorkoutExerciseId");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("WorkoutId");
+
+                    b.ToTable("workoutExercises");
+                });
+
             modelBuilder.Entity("MCPowerlifting.Models.Entities.WorkoutProgram", b =>
                 {
                     b.Property<int>("ProgramId")
@@ -208,9 +274,7 @@ namespace MCPowerlifting.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ProgramId"));
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
+                        .HasColumnType("longtext")
                         .HasColumnName("description");
 
                     b.Property<string>("Name")
@@ -218,10 +282,6 @@ namespace MCPowerlifting.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
                         .HasColumnName("name");
-
-                    b.Property<float>("StartingWeight")
-                        .HasColumnType("float")
-                        .HasColumnName("starting_weight");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int")
@@ -245,17 +305,6 @@ namespace MCPowerlifting.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("MCPowerlifting.Models.Entities.Exercise", b =>
-                {
-                    b.HasOne("MCPowerlifting.Models.Entities.Workout", "Workout")
-                        .WithMany("Exercises")
-                        .HasForeignKey("WorkoutId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Workout");
-                });
-
             modelBuilder.Entity("MCPowerlifting.Models.Entities.Plate", b =>
                 {
                     b.HasOne("MCPowerlifting.Models.Entities.Equipment", "Equipment")
@@ -267,6 +316,25 @@ namespace MCPowerlifting.Migrations
                     b.Navigation("Equipment");
                 });
 
+            modelBuilder.Entity("MCPowerlifting.Models.Entities.ProgramExercise", b =>
+                {
+                    b.HasOne("MCPowerlifting.Models.Entities.Exercise", "Exercise")
+                        .WithMany("ProgramExercises")
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MCPowerlifting.Models.Entities.WorkoutProgram", "Program")
+                        .WithMany("ProgramExercises")
+                        .HasForeignKey("ProgramId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exercise");
+
+                    b.Navigation("Program");
+                });
+
             modelBuilder.Entity("MCPowerlifting.Models.Entities.Workout", b =>
                 {
                     b.HasOne("MCPowerlifting.Models.Entities.User", "User")
@@ -276,6 +344,25 @@ namespace MCPowerlifting.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MCPowerlifting.Models.Entities.WorkoutExercise", b =>
+                {
+                    b.HasOne("MCPowerlifting.Models.Entities.Exercise", "Exercise")
+                        .WithMany("WorkoutExercises")
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MCPowerlifting.Models.Entities.Workout", "Workout")
+                        .WithMany("WorkoutExercises")
+                        .HasForeignKey("WorkoutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exercise");
+
+                    b.Navigation("Workout");
                 });
 
             modelBuilder.Entity("MCPowerlifting.Models.Entities.WorkoutProgram", b =>
@@ -294,6 +381,13 @@ namespace MCPowerlifting.Migrations
                     b.Navigation("Plates");
                 });
 
+            modelBuilder.Entity("MCPowerlifting.Models.Entities.Exercise", b =>
+                {
+                    b.Navigation("ProgramExercises");
+
+                    b.Navigation("WorkoutExercises");
+                });
+
             modelBuilder.Entity("MCPowerlifting.Models.Entities.User", b =>
                 {
                     b.Navigation("Equipments");
@@ -305,7 +399,12 @@ namespace MCPowerlifting.Migrations
 
             modelBuilder.Entity("MCPowerlifting.Models.Entities.Workout", b =>
                 {
-                    b.Navigation("Exercises");
+                    b.Navigation("WorkoutExercises");
+                });
+
+            modelBuilder.Entity("MCPowerlifting.Models.Entities.WorkoutProgram", b =>
+                {
+                    b.Navigation("ProgramExercises");
                 });
 #pragma warning restore 612, 618
         }
