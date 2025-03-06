@@ -20,7 +20,7 @@ namespace MCPowerlifting.Models.Entities
 
         [Required]
         [Column("actual_weight")]
-        public float ActualWeight { get; set; }
+        public double ActualWeight { get; set; }
 
         [Required]
         [Column("actual_sets")]

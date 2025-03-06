@@ -21,13 +21,14 @@ namespace MCPowerlifting.Models.Entities
         public string? Category { get; set; }
 
         // Navigation
-        public ICollection<ProgramExercise> ProgramExercises { get; set; }
         public ICollection<WorkoutExercise> WorkoutExercises { get; set; }
+
+        public ICollection<Starting_Weights> StartingWeights { get; set; }
 
         public Exercise()
         {
-            ProgramExercises = new List<ProgramExercise>();
             WorkoutExercises = new List<WorkoutExercise>();
+            StartingWeights = new List<Starting_Weights>();
         }
     }
 }

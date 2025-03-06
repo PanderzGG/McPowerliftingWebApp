@@ -25,11 +25,9 @@ namespace MCPowerlifting.Models.Entities
 
         // Navigation
         public User? User { get; set; }
-        public ICollection<ProgramExercise> ProgramExercises { get; set; }
 
         public WorkoutProgram()
         {
-            ProgramExercises = new List<ProgramExercise>();
         }
     }
 }

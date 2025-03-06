@@ -34,12 +34,14 @@ namespace MCPowerlifting.Models.Entities
         public ICollection<WorkoutProgram> WorkoutPrograms { get; set; }
         public ICollection<Equipment> Equipments { get; set; }
         public ICollection<Workout> Workouts { get; set; }
+        public ICollection<Starting_Weights> StartingWeights { get; set; }
 
         public User()
         {
             WorkoutPrograms = new List<WorkoutProgram>();
             Equipments = new List<Equipment>();
             Workouts = new List<Workout>();
+            StartingWeights = new List<Starting_Weights>();
         }
     }
 }

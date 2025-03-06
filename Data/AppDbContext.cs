@@ -16,7 +16,7 @@ namespace MCPowerlifting.Data
         public DbSet<Plate> Plates { get; set; }
         public DbSet<Workout> Workouts { get; set; }
         public DbSet<Exercise> Exercises { get; set; }
-        public DbSet<ProgramExercise> programExercises { get; set; }
         public DbSet<WorkoutExercise> workoutExercises { get; set; }
+        public DbSet<Starting_Weights> startingWeights { get; set; }
     }
 }

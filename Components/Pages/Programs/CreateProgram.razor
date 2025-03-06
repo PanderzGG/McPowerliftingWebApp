@@ -1,5 +1,8 @@
 ﻿@page "/create-program"
+@* @layout CreateProgramLayout *@
+
 @rendermode InteractiveServer
+@using MCPowerlifting.Components.Layout
 @using MCPowerlifting.Data
 @using MCPowerlifting.Helper
 @using MCPowerlifting.Models.Entities
@@ -152,7 +155,17 @@
             Description = Model.Description
         };
 
-        appDbContext.WorkoutPrograms.Add(newProgram);
+        WorkoutProgram? existingProgram = await appDbContext.WorkoutPrograms.Where(wp => wp.UserId == Model.UserId).FirstOrDefaultAsync();
+
+        if (existingProgram != null)
+        {
+            existingProgram.Name = Model.ProgramName;
+            existingProgram.Description = Model.Description;
+        }
+        else
+        {
+            appDbContext.WorkoutPrograms.Add(newProgram);
+        }
 
         Equipment? equipment = await appDbContext.Equipments.Where(eq => eq.UserId == Model.UserId).FirstOrDefaultAsync();
 
@@ -191,7 +204,7 @@
         }
         else
         {
-            navigationManager.NavigateTo("/");
+            navigationManager.NavigateTo("/starting-weights");
         }
     }
 }

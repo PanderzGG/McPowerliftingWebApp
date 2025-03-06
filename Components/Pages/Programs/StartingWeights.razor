@@ -1,0 +1,134 @@
+﻿@page "/starting-weights"
+
+@rendermode InteractiveServer
+
+@using MCPowerlifting.Models.Entities
+@using MCPowerlifting.Models.ViewModels
+
+@inject UserService Userservice
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+
+<div class="card">
+    <div class="card">
+        <div class="card-header">
+            <h3>Please chose your starting weights for the following exercises based on your 5 REM</h3>
+        </div>
+        <div class="card-body">
+            <ul class="list-group-flush">
+                @foreach (var ex in Exercises)
+                {
+                    <li class="list-group-item">
+                        <h4>@ex.ExerciseName</h4>
+                        <input type="number" class="form-control" @bind-value="ModelList.Find(sw => sw.ExerciseId == ex.ExerciseId).Weight" />
+                    </li>
+                }
+            </ul>
+        </div>
+        <div class="card-footer">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#CreateStartWeightsModal" @onclick="ModalFill">
+                Save Starting Weights
+            </button>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="CreateStartWeightsModal" tabindex="-1" aria-labelledby="CreateStartWeightsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="CreateStartWeightsModalLabel">Save these Numbers as your starting point?</h1>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group-flush">
+                    @foreach (var mod in ModalValues)
+                    { 
+                        <li class="list-group-item">
+                            @mod.Key: @mod.Value Kg
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" @onclick="SaveStartingWeights">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [SupplyParameterFromForm]
+    public CreateStartingWeights Model { get; set; } = new CreateStartingWeights();
+
+    private List<Exercise> Exercises { get; set; } = new List<Exercise>();
+
+    private List<Starting_Weights> ModelList { get; set; } = new List<Starting_Weights>();
+
+    private Dictionary<string, double> ModalValues= new Dictionary<string, double>();
+
+    override protected async Task OnInitializedAsync()
+    {
+        var userId = Userservice.GetCurrentUserId();
+        if (userId != null)
+        {
+            Model.UserId = userId.Value;
+        }
+        else
+        {
+            navigationManager.NavigateTo("/login");
+        }
+
+        foreach (var exercise in appDbContext.Exercises)
+        {
+            Exercises.Add(exercise);
+        }
+
+
+        foreach (var exercise in Exercises)
+        {
+            Starting_Weights? start = new Starting_Weights();
+            start.UserId = userId.Value;
+            start.ExerciseId = exercise.ExerciseId;
+            start.Weight = 0;
+            ModelList.Add(start);
+        }
+    }
+
+    private void ModalFill()
+    {
+        foreach(var ex in Exercises)
+        {
+            string name = ex.ExerciseName;
+            double weight = ModelList.Find(sw => sw.ExerciseId == ex.ExerciseId).Weight;
+
+            ModalValues.Add(name, weight);
+        }
+    }
+
+    private async Task SaveStartingWeights()
+    {
+        foreach(var add in ModelList)
+        {
+            Starting_Weights weights = new Starting_Weights
+            {
+                ExerciseId = add.ExerciseId,
+                UserId = add.UserId,
+                Weight = add.Weight
+            };
+            appDbContext.startingWeights.Add(weights);
+        }
+        try
+        {
+            await appDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+    }
+}
