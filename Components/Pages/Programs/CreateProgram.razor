@@ -152,15 +152,27 @@
             Description = Model.Description
         };
 
-        Equipment newEquipment = new Equipment
-            {
-                BarWeight = Model.BarWeight,
-                UserId = Model.UserId
-            };
-
         appDbContext.WorkoutPrograms.Add(newProgram);
-        appDbContext.Equipments.Add(newEquipment);
 
+        Equipment? equipment = await appDbContext.Equipments.Where(eq => eq.UserId == Model.UserId).FirstOrDefaultAsync();
+
+        if (equipment != null)
+        {
+            // Werte aktualisieren statt neues Objekt erstellen
+            equipment.BarWeight = Model.BarWeight;
+            equipment.UpdatedAt = DateTime.Now;
+            // appDbContext.Equipments.Update(equipment); // Optional, da Entity Framework das Objekt schon trackt
+        }
+        else
+        {
+            Equipment newEquipment = new Equipment
+                {
+                    BarWeight = Model.BarWeight,
+                    UserId = Model.UserId,
+                    UpdatedAt = DateTime.Now
+                };
+            appDbContext.Equipments.Add(newEquipment);
+        }
         try
         {
             await appDbContext.SaveChangesAsync();
@@ -170,7 +182,7 @@
             return;
         }
 
-        Equipment equipment = await appDbContext.Equipments.Where(equipment => equipment.UserId == Model.UserId).FirstOrDefaultAsync();
+        equipment = await appDbContext.Equipments.Where(equipment => equipment.UserId == Model.UserId).FirstOrDefaultAsync();
         bool equipmentHasPlates = await appDbContext.Plates.Where(plates => plates.EquipmentId == equipment.EquipmentId).AnyAsync();
 
         if (!equipmentHasPlates)

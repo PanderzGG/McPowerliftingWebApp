@@ -17,7 +17,7 @@ namespace MCPowerlifting.Models.Entities
 
         [Required]
         [Column("plate_weight")]
-        public float PlateWeight { get; set; }
+        public double PlateWeight { get; set; }
 
         [Required]
         [Column("plate_count")]

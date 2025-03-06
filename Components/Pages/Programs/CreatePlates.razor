@@ -1,7 +1,147 @@
 ﻿@page "/create-plates"
+@using MCPowerlifting.Models.Entities
+@using MCPowerlifting.Models.ViewModels
+@rendermode InteractiveServer
+@inject UserService UserService
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
 
-<h1>DEM PLATES BE HERE</h1>
+<div class="card m-4">
+    <div class="card m-4" style="max-width:50vW;">
+        <div class="card-header d-flex justify-content-center">
+            <h2>What kind of plates do you own?</h2>
+        </div>
+        <div class="card-body d-flex justify-content-center">
+            <div class="btn-group" role="group" aria-label="Basic checkbox toggle button group">
+                @foreach (var checkPair in Checks)
+                {
+                    <input type="checkbox" @bind-value="@Checks[checkPair.Key]" class="btn-check" id="@("btn" + checkPair.Key.Substring(5))" autocomplete="off" style="min-width:5rem;">
+                    <label class="btn btn-outline-primary" for="@("btn" + checkPair.Key.Substring(5))">@checkPair.Key.Substring(5) Kg</label>
+                }
+            </div>
+        </div>
+        <div class="card-body d-flex">
+            @foreach (var checkPair in Checks)
+            {
+                if(checkPair.Value == true)
+                {
+                    <div style="max-width:10rem; margin-right: 10px;">
+                        @* Added margin for spacing *@
+                        <label>@checkPair.Key.Substring(5)</label>
+                        <input type="number" class="form-control" placeholder="0" aria-label="0" @bind-value="@PlateCounts[checkPair.Key]" />
+                        <span class="input-group-text" id="@("span_" + checkPair.Key)">stk</span>
+                    </div>
+                }
+
+            }
+        </div>
+    </div>
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#PlateValidationModal">
+        Save Plates
+    </button>
+    <!-- Modal -->
+    <div class="modal fade" id="PlateValidationModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">Plate Validation</h1>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="list-group-flush">
+                        @foreach(var p in PlateCounts)
+                        {
+                            if (p.Value > 0)
+                            {
+                                <li class="list-group-item">
+                                    @p.Key.Substring(5) Kg: @p.Value stk
+                                </li>
+                            };
+                        }
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreatingPlateSave" data-dismiss="modal">Save Plates</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 @code {
+
+    [SupplyParameterFromForm]
+    public PlateViewModel Model { get; set; } = new PlateViewModel();
+
+    private string? errorMessage;
+
+    public Dictionary<string, bool> Checks { get; set; } = new Dictionary<string, bool>
+    {
+        {"Check0,25", false},
+        {"Check0,50", false},
+        {"Check0,75", false},
+        {"Check1,25", false},
+        {"Check2,50", false},
+        {"Check5,00", false},
+        {"Check10,00", false},
+        {"Check15,00", false},
+        {"Check20,00", false},
+        {"Check25,00", false}
+    };
+
+    public Dictionary<string, int> PlateCounts { get; set; } = new Dictionary<string, int>
+    {
+        {"Check0,25", 0},
+        {"Check0,50", 0},
+        {"Check0,75", 0},
+        {"Check1,25", 0},
+        {"Check2,50", 0},
+        {"Check5,00", 0},
+        {"Check10,00", 0},
+        {"Check15,00", 0},
+        {"Check20,00", 0},
+        {"Check25,00", 0}
+    };
+
+    private async Task CreatingPlateSave()
+    {
+        var userId = UserService.GetCurrentUserId();
+
+        Equipment? equipment = appDbContext.Equipments.FirstOrDefault(e => e.UserId == userId);
+
+        if(equipment == null)
+        {
+            errorMessage = "Please enter a Barweight first.";
+            navigationManager.NavigateTo("/create-program");
+        }
+
+        Model.EquipmentId = equipment.EquipmentId;
+
+        foreach (var p in PlateCounts)
+        {
+            if (p.Value > 0)
+            {
+                Plate plate = new Plate
+                    {
+                        EquipmentId = Model.EquipmentId,
+                        PlateWeight = Convert.ToDouble(p.Key.Substring(5)),
+                        PlateCount = p.Value
+                    };
+                appDbContext.Plates.Add(plate);
+            }
+        }
+        try
+        {
+            await appDbContext.SaveChangesAsync();
+        }
+        catch(Exception ex)
+        {
+            return;
+        }
+
+        navigationManager.NavigateTo("/");
+    }
 
 }

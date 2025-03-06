@@ -2,8 +2,8 @@
 {
     public class PlateViewModel
     {
+        public int EquipmentId { get; set; }
         public float PlateWeight { get; set; }
-        public bool IsSelected { get; set; }
         public int PlateCount { get; set; }
     }
 }
