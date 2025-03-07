@@ -60,13 +60,60 @@
                     Warm Up
                 </div>
                 <div class="card-body">
-
+                    @if(!setList.Any(x => x.SetType == "warmup"))
+                    {
+                        <p>Not Enough weight on your working set yet.</p>
+                        <p>No warm up needed. Jump straight to the working sets</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-horizontal">
+                            @foreach (var set in setList.Where(x => x.SetType == "warmup"))
+                            {
+                                <li class="list-group-item card">
+                                    <div class="card-header">
+                                        <h4>Set @set.SetNumber</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <h4>Weight: @set.SetWeight Kg</h4>
+                                        <h4>Reps: @set.SetReps</h4>
+                                    </div>
+                                    <div class="card-footer">
+                                        <input type="checkbox" class="btn-check" id="btn-@set.SetNumber-@set.SetType" checked autocomplete="off">
+                                        <label class="btn btn-primary" for="btn-@set.SetNumber-@set.SetType">Done</label>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
                 </div>
             </div>
             <div class="card">
                 <div class="card-header">
+                    Working Sets
                 </div>
                 <div class="card-body">
+                    <ul class="list-group list-group-horizontal">
+                        @foreach (var set in setList.Where(x => x.SetType == "working"))
+                        {
+                            <li class="list-group-item card">
+                                <div class="card-header">
+                                    <h4>Set @set.SetNumber</h4>
+                                </div>
+                                <div class="card-body">
+                                    <h4>Weight: @set.SetWeight Kg</h4>
+                                    <h4>Reps: @set.SetReps</h4>
+                                </div>
+                                <div class="card-footer">
+                                    <input type="checkbox" class="btn-check" id="btn-@set.SetNumber-@set.SetType" checked autocomplete="off">
+                                    <label class="btn btn-primary" for="btn-@set.SetNumber-@set.SetType">Success</label>
+
+                                    <input type="checkbox" class="btn-check" id="btn-@set.SetNumber-@set.SetType-fail" checked autocomplete="off">
+                                    <label class="btn btn-primary" for="btn-@set.SetNumber-@set.SetType-fail">Failed</label>
+                                </div>
+                            </li>
+                        }
+                    </ul>
                 </div>
                 <div class="card-footer">
                     <button type="button" class="btn btn-secondary" @onclick="AbortExercise">Abort Exercise</button>
@@ -88,6 +135,8 @@
     private List<Exercise> exercises = new List<Exercise>();
     private List<Workout> workouts = new List<Workout>();
     private List<WorkoutExercise> workoutExercises = new List<WorkoutExercise>();
+
+    private List<ActiveExercise> setList = new List<ActiveExercise>();
 
     private Dictionary<string, double> activeWeights = new Dictionary<string, double>();
 
@@ -132,14 +181,14 @@
         isActive = true;
     }
 
-    private async Task StartExercise(string exerciseName)
+    private void StartExercise(string exerciseName)
     {
         inExercise = true;
         currentExercise = exerciseName;
 
         double maxWeight = activeWeights[exerciseName];
 
-        madCowWorkoutCalculator.CalculateExercise(exerciseName, maxWeight, Model.WorkoutLoad);
+        setList = madCowWorkoutCalculator.CalculateExercise(exerciseName, maxWeight, Model.WorkoutLoad);
 
     }
 

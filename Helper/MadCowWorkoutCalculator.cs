@@ -41,120 +41,153 @@ namespace MCPowerlifting.Helper
         }
 
 
-        public ActiveExercise CalculateExercise(string exerciseName, double maxWeight, string loadType)
+        public List<ActiveExercise> CalculateExercise(string exerciseName, double maxWeight, string loadType)
         {
             ActiveExercise activeExercise = new ActiveExercise();
             
-            Dictionary<int, double> warmUpRepWeight = new Dictionary<int, double>();
-            Dictionary<int, double> workSetRepWeight = new Dictionary<int, double>();
+            List<ActiveExercise> workingSetsRepsWeights = new List<ActiveExercise>();
+            List<ActiveExercise> warmUpSetsRepsWeights = new List<ActiveExercise>();
+
+            List<ActiveExercise> totalSetRepWeight = new List<ActiveExercise>();
 
             activeExercise.ExerciseName = exerciseName.ToLower();
 
             switch (activeExercise.ExerciseName)
             {
                 case "squat":
-                    workSetRepWeight = CalculateWorkingSetWeights(loadType, maxWeight);
-                    if (workSetRepWeight[1] > 40)
-                    {
-                        double minimumWeight = workSetRepWeight[1];
-                        warmUpRepWeight = CalculateWarmUpWeights(minimumWeight);
-                    }
+                    workingSetsRepsWeights = CalculateWorkingSetWeights(loadType, maxWeight);
+                    totalSetRepWeight.AddRange(workingSetsRepsWeights);
 
-                    activeExercise.WarmUpRepWeight = warmUpRepWeight;
-                    activeExercise.WorkSetRepWeight = workSetRepWeight;
+                    if (workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight > 40)
+                    {
+                        double minimumWeight = workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight;
+                        warmUpSetsRepsWeights = CalculateWarmUpWeights(minimumWeight);
+                    }
+                    if(warmUpSetsRepsWeights.Count > 0)
+                    {
+                        totalSetRepWeight.AddRange(warmUpSetsRepsWeights);
+                    }
 
                     break;
                 case "deadlift":
-                    workSetRepWeight = CalculateWorkingSetWeights(loadType, maxWeight);
-                    if (workSetRepWeight[1] > 40)
-                    {
-                        double minimumWeight = workSetRepWeight[1];
-                        warmUpRepWeight = CalculateWarmUpWeights(minimumWeight);
-                    }
+                    workingSetsRepsWeights = CalculateWorkingSetWeights(loadType, maxWeight);
+                    totalSetRepWeight.AddRange(workingSetsRepsWeights);
 
-                    activeExercise.WarmUpRepWeight = warmUpRepWeight;
-                    activeExercise.WorkSetRepWeight = workSetRepWeight;
+                    if (workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight > 40)
+                    {
+                        double minimumWeight = workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight;
+                        warmUpSetsRepsWeights = CalculateWarmUpWeights(minimumWeight);
+                    }
+                    if (warmUpSetsRepsWeights.Count > 0)
+                    {
+                        totalSetRepWeight.AddRange(warmUpSetsRepsWeights);
+                    }
                     break;
                 case "bench press":
-                    workSetRepWeight = CalculateWorkingSetWeights(loadType, maxWeight);
-                    if (workSetRepWeight[1] > 40)
-                    {
-                        double minimumWeight = workSetRepWeight[1];
-                        warmUpRepWeight = CalculateWarmUpWeights(minimumWeight);
-                    }
+                    workingSetsRepsWeights = CalculateWorkingSetWeights(loadType, maxWeight);
+                    totalSetRepWeight.AddRange(workingSetsRepsWeights);
 
-                    activeExercise.WarmUpRepWeight = warmUpRepWeight;
-                    activeExercise.WorkSetRepWeight = workSetRepWeight;
+                    if (workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight > 40)
+                    {
+                        double minimumWeight = workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight;
+                        warmUpSetsRepsWeights = CalculateWarmUpWeights(minimumWeight);
+                    }
+                    if (warmUpSetsRepsWeights.Count > 0)
+                    {
+                        totalSetRepWeight.AddRange(warmUpSetsRepsWeights);
+                    }
                     break;
                 case "overhead press":
-                    workSetRepWeight = CalculateWorkingSetWeights(loadType, maxWeight);
-                    if (workSetRepWeight[1] > 40)
-                    {
-                        double minimumWeight = workSetRepWeight[1];
-                        warmUpRepWeight = CalculateWarmUpWeights(minimumWeight);
-                    }
+                    workingSetsRepsWeights = CalculateWorkingSetWeights(loadType, maxWeight);
+                    totalSetRepWeight.AddRange(workingSetsRepsWeights);
 
-                    activeExercise.WarmUpRepWeight = warmUpRepWeight;
-                    activeExercise.WorkSetRepWeight = workSetRepWeight;
+                    if (workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight > 40)
+                    {
+                        double minimumWeight = workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight;
+                        warmUpSetsRepsWeights = CalculateWarmUpWeights(minimumWeight);
+                    }
+                    if (warmUpSetsRepsWeights.Count > 0)
+                    {
+                        totalSetRepWeight.AddRange(warmUpSetsRepsWeights);
+                    }
                     break;
                 case "barbell row":
-                    workSetRepWeight = CalculateWorkingSetWeights(loadType, maxWeight);
-                    if (workSetRepWeight[1] > 40)
-                    {
-                        double minimumWeight = workSetRepWeight[1];
-                        warmUpRepWeight = CalculateWarmUpWeights(minimumWeight);
-                    }
+                    workingSetsRepsWeights = CalculateWorkingSetWeights(loadType, maxWeight);
+                    totalSetRepWeight.AddRange(workingSetsRepsWeights);
 
-                    activeExercise.WarmUpRepWeight = warmUpRepWeight;
-                    activeExercise.WorkSetRepWeight = workSetRepWeight;
+                    if (workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight > 40)
+                    {
+                        double minimumWeight = workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight;
+                        warmUpSetsRepsWeights = CalculateWarmUpWeights(minimumWeight);
+                    }
+                    if (warmUpSetsRepsWeights.Count > 0)
+                    {
+                        totalSetRepWeight.AddRange(warmUpSetsRepsWeights);
+                    }
                     break;
             }
 
-            return activeExercise;
+            return totalSetRepWeight;
         }
         
-        public Dictionary<int, double> CalculateWarmUpWeights(double minimumWeight)
+        public List<ActiveExercise> CalculateWarmUpWeights(double minimumWeight)
         {
-            Dictionary<int, double> warmpUpSetWeights = new Dictionary<int, double>();
+            List<ActiveExercise> warmUpSets = new List<ActiveExercise>();
+            ActiveExercise lastSet = new ActiveExercise();
 
-            int setNr;
             double setHeavy = Math.Round((minimumWeight * 0.7), 2);
             double setLight = Math.Round((setHeavy * 0.5), 2);
 
             for (int i = 0; i <= 1; i++)
             {
-                setNr = i + 1;
-                warmpUpSetWeights.Add(setNr, setLight);
+                ActiveExercise tempSet= new ActiveExercise();
+                tempSet.SetNumber = i + 1;
+                tempSet.SetType = "warmup";
+                tempSet.SetWeight = setLight;
+                tempSet.SetReps = 5;
 
+                warmUpSets.Add(tempSet);
             }
 
-            setNr = 3;
-            warmpUpSetWeights.Add(setNr, setHeavy);
+            lastSet.SetNumber = 3;
+            lastSet.SetType = "warmup";
+            lastSet.SetWeight = setHeavy;
+            lastSet.SetReps = 5;
+            warmUpSets.Add(lastSet);
 
-            return warmpUpSetWeights;
+            return warmUpSets;
         }
 
 
-        private Dictionary<int, double> CalculateWorkingSetWeights(string loadType, double maxWeight)
+        private List<ActiveExercise> CalculateWorkingSetWeights(string loadType, double maxWeight)
         {
-            Dictionary<int, double> workingSetWeights = new Dictionary<int, double>();
-
-            int setNr;
-            double setWeight;
+            List<ActiveExercise> setResult= new List<ActiveExercise>();
 
             switch (loadType.ToLower())
             {
                 case "heavy":
+                    List<ActiveExercise> workingSet = new List<ActiveExercise>();
+                    ActiveExercise set = new ActiveExercise();
+
                     for (int i = 0; i <= 4; i++)
                     {
-                        setNr = i + 1;
-                        setWeight = maxWeight - ((maxWeight * 0.125) * (5 - setNr));
-                        workingSetWeights.Add(setNr, setWeight);
+                        ActiveExercise tempSet = new ActiveExercise();
+                        tempSet.SetNumber = i + 1;
+                        tempSet.SetType = "working";
+                        tempSet.SetWeight = maxWeight - ((maxWeight * 0.125) * (5 - tempSet.SetNumber));
+                        tempSet.SetReps = 5;
+
+                        workingSet.Add(tempSet);
                     }
 
-                    setNr = 6;
-                    setWeight = workingSetWeights[3];
-                    workingSetWeights.Add(setNr, setWeight);
+                    set.SetNumber = 6;
+                    set.SetType = "working";
+                    set.SetWeight = workingSet.First(x => x.SetNumber == 3).SetWeight;
+                    set.SetReps = 8;
+
+                    workingSet.Add(set);
+
+                    setResult.AddRange(workingSet);
                     break;
                 case "medium":
                     
@@ -164,7 +197,7 @@ namespace MCPowerlifting.Helper
                     break;
             }
 
-            return workingSetWeights;
+            return setResult;
         }
 
         public Dictionary<string, double> CalculateFromStartingWeight(List<Starting_Weights> suppliedWeights)

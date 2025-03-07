@@ -3,9 +3,14 @@
     public class ActiveExercise
     {
         public string ExerciseName { get; set; }
-        public Dictionary<int , double> WarmUpRepWeight { get; set; }
+        
+        public string SetType { get; set; }
 
-        public Dictionary<int, double> WorkSetRepWeight { get; set; }
+        public int SetNumber { get; set; }
+
+        public int SetReps { get; set; }
+
+        public double SetWeight { get; set; }
 
     }
 }
