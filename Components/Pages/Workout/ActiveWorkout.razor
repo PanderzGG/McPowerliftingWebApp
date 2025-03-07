@@ -101,15 +101,38 @@
                                     <h4>Set @set.SetNumber</h4>
                                 </div>
                                 <div class="card-body">
-                                    <h4>Weight: @set.SetWeight Kg</h4>
-                                    <h4>Reps: @set.SetReps</h4>
+                                    @if (set.IsSuccessful.HasValue && set.IsSuccessful.Value)
+                                    {
+                                        <h4>Weight: @set.SetWeight Kg</h4>
+                                        <h4>Reps: @set.SetReps</h4>
+                                        <div class="alert alert-success">Set erfolgreich!</div>
+                                    }
+                                    else if (set.IsSuccessful.HasValue && !set.IsSuccessful.Value)
+                                    {
+                                        <h4>Weight: @set.SetWeight Kg</h4>
+                                        <h4>Reps: @set.SetReps</h4>
+                                        <div class="alert alert-danger">Set nicht geschafft!</div>
+                                    }
+                                    else
+                                    {
+                                        <h4>Weight: @set.SetWeight Kg</h4>
+                                        <h4>Reps: @set.SetReps</h4>
+                                    }
                                 </div>
                                 <div class="card-footer">
-                                    <input type="checkbox" class="btn-check" id="btn-@set.SetNumber-@set.SetType" checked autocomplete="off">
-                                    <label class="btn btn-primary" for="btn-@set.SetNumber-@set.SetType">Success</label>
+                                    <input type="radio" class="btn-check"
+                                           id="radio-@set.SetNumber-success"
+                                           name="options-@set.SetNumber"
+                                           checked="@(set.IsSuccessful == true)"
+                                           @onchange="@(() => set.IsSuccessful = true)" />
+                                    <label class="btn btn-success" for="radio-@set.SetNumber-success">Success</label>
 
-                                    <input type="checkbox" class="btn-check" id="btn-@set.SetNumber-@set.SetType-fail" checked autocomplete="off">
-                                    <label class="btn btn-primary" for="btn-@set.SetNumber-@set.SetType-fail">Failed</label>
+                                    <input type="radio" class="btn-check"
+                                           id="radio-@set.SetNumber-failed"
+                                           name="options-@set.SetNumber"
+                                           checked="@(set.IsSuccessful == false)"
+                                           @onchange="@(() => set.IsSuccessful = false)" />
+                                    <label class="btn btn-danger" for="radio-@set.SetNumber-failed">Failed</label>
                                 </div>
                             </li>
                         }
@@ -151,6 +174,8 @@
 
     private bool isNew = false;
 
+    private bool isSuccessChecked { get; set; } = false;
+    private bool isFailedChecked { get; set; } = false;
 
     override protected async Task OnInitializedAsync()
     {

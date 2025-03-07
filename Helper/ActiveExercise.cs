@@ -12,5 +12,7 @@
 
         public double SetWeight { get; set; }
 
+        public bool? IsSuccessful { get; set; }
+
     }
 }

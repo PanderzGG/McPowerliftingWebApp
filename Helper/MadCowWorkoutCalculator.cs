@@ -161,12 +161,12 @@ namespace MCPowerlifting.Helper
 
         private List<ActiveExercise> CalculateWorkingSetWeights(string loadType, double maxWeight)
         {
-            List<ActiveExercise> setResult= new List<ActiveExercise>();
+            List<ActiveExercise> workingSet = new List<ActiveExercise>();
 
             switch (loadType.ToLower())
             {
                 case "heavy":
-                    List<ActiveExercise> workingSet = new List<ActiveExercise>();
+                    
                     ActiveExercise set = new ActiveExercise();
 
                     for (int i = 0; i <= 4; i++)
@@ -187,7 +187,7 @@ namespace MCPowerlifting.Helper
 
                     workingSet.Add(set);
 
-                    setResult.AddRange(workingSet);
+                    
                     break;
                 case "medium":
                     
@@ -197,7 +197,7 @@ namespace MCPowerlifting.Helper
                     break;
             }
 
-            return setResult;
+            return workingSet;
         }
 
         public Dictionary<string, double> CalculateFromStartingWeight(List<Starting_Weights> suppliedWeights)
