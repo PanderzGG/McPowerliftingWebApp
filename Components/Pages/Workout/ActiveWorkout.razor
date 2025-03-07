@@ -17,21 +17,88 @@
         <h1>Active Workout</h1>
     </div>
     <div class="card-body">
-        @if (!isActive)
-        {
-            <ul class="list-group-flush list-group-horizontal">
-                <li>
+        <ul class="list-group list-group-horizontal">
+            @if (!isActive)
+            {
 
+                @foreach (var exercise in activeWeights) 
+                {
+                    <li class="list-group-item">
+                        @exercise.Key: @exercise.Value Kg
+                    </li>
+                }
+                <li class="list-group-item">
+                    <button type="button" class="btn btn-primary" @onclick="ProgramStart">Start Workout</button>
                 </li>
-            </ul>
-        }
 
+            }
+            else if (isActive && !inExercise)
+            {
+                @foreach (var exercise in activeWeights)
+                { 
+                    <li class="list-group-item">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>@exercise.Key</h2>
+                            </div>
+                            <div class="card-body">
+                                <h4>Weight: @exercise.Value Kg</h4>
+                            </div>
+                            <div class="card-footer">
+                                <button type="button" class="btn btn-primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</button>
+                            </div>
+                        </div>
+                    </li>
+                }
+            }
+        </ul>
+        @if (isActive && inExercise)
+        {
+            <h1>@currentExercise</h1>
+            <div class="card">
+                <div class="card-header">
+                    Warm Up
+                </div>
+                <div class="card-body">
+
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                </div>
+                <div class="card-body">
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="AbortExercise">Abort Exercise</button>
+                    <button type="button" class="btn btn-primary">Finish Exercise</button>
+                </div>
+            </div>
+        }
     </div>
 
 </div>
 
 @code {
+
+    private ActiveWorkoutViewModel Model = new ActiveWorkoutViewModel();
+    private MadCowWorkoutCalculator madCowWorkoutCalculator = new MadCowWorkoutCalculator();
+
+    private ActiveExercise activeExercise = new ActiveExercise();
+
+    private List<Exercise> exercises = new List<Exercise>();
+    private List<Workout> workouts = new List<Workout>();
+    private List<WorkoutExercise> workoutExercises = new List<WorkoutExercise>();
+
+    private Dictionary<string, double> activeWeights = new Dictionary<string, double>();
+
+    //Todo: Implementierung auswahl verschiedener Workouts
+    // private List<Program> programs = new List<Program>();
+    // InDev hilfe, da nur ein program
+    private string aktivesProgram = "madcow 5x5";
+    private string currentExercise;
+
     private bool isActive = false;
+    private bool inExercise = false;
 
     private bool isNew = false;
 
@@ -42,10 +109,42 @@
         // Abrufen der Query-Parameter aus der URL
         var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
         var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-        
+
+
         if (queryParameters.TryGetValue("isNew", out var isNewParam))
         {
             isNew = bool.Parse(isNewParam);
+
+            if(isNew != null && true)
+            {
+                List<Starting_Weights> startingWeights = new List<Starting_Weights>();
+                startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
+
+                activeWeights = madCowWorkoutCalculator.CalculateFromStartingWeight(startingWeights);
+
+                Model.WorkoutLoad = "Heavy";
+            }
         }
+    }
+
+    private void ProgramStart()
+    {
+        isActive = true;
+    }
+
+    private async Task StartExercise(string exerciseName)
+    {
+        inExercise = true;
+        currentExercise = exerciseName;
+
+        double maxWeight = activeWeights[exerciseName];
+
+        madCowWorkoutCalculator.CalculateExercise(exerciseName, maxWeight, Model.WorkoutLoad);
+
+    }
+
+    private void AbortExercise()
+    {
+        inExercise = false;
     }
 }
