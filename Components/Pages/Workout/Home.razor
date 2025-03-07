@@ -1,7 +1,17 @@
 ﻿@page "/"
 @attribute [Authorize(Roles = "user")]
 
-<PageTitle>Home</PageTitle>
+@rendermode InteractiveServer
+
+@using MCPowerlifting.Helper
+@using MCPowerlifting.Models.Entities
+@using MCPowerlifting.Models.ViewModels
+
+@inject UserService Userservice
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+
+<PageTitle>Next Workout</PageTitle>
 
 
 <div class="row">
@@ -10,6 +20,113 @@
             <div class="card-header">
                 <h2 class="text-center">Next Workout</h2>
             </div>
+            <div class="card-body">
+                <ul class="list-group-flush">
+                    @foreach (var exercise in nextWorkoutWeights)
+                    {
+                        <li class="list-group-item">
+                            @exercise.Key: @exercise.Value Kg
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div class="card-footer">
+                <!-- Button trigger modal -->
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#startWorkoutQuestionModal">
+                    Start Workout
+                </button>
+
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Modal -->
+<div class="modal fade" id="startWorkoutQuestionModal" tabindex="-1" aria-labelledby="startWorkoutQuestionLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Start workout?</h1>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Do you want to start the workout now?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Not yet</button>
+                <button type="button" class="btn btn-primary" @onclick="StartWorkout">Start Workout</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code{
+
+    private NextWorkoutViewModel Model = new NextWorkoutViewModel();
+
+    private MadCowWorkoutCalculator madCowWorkoutCalculator = new MadCowWorkoutCalculator();
+
+    private List<Workout> Workouts { get; set; } = new List<Workout>();
+    private List<Starting_Weights> startingWeights { get; set; } = new List<Starting_Weights>();
+    private List<NextWorkoutViewModel> NextWorkout { get; set; } = new List<NextWorkoutViewModel>();
+
+    private Dictionary<string, double> nextWorkoutWeights = new Dictionary<string, double>();
+
+    override protected async Task OnInitializedAsync()
+    {
+        bool hasWorkout = false;
+        bool hasStartingWeights = false;
+
+        List<Exercise> Exercises = new List<Exercise>();
+        Exercises = await appDbContext.Exercises.ToListAsync();
+
+        var userId = Userservice.GetCurrentUserId();
+        Workouts = await appDbContext.Workouts.Where(workout => workout.UserId == userId.Value).ToListAsync();
+        startingWeights = await appDbContext.startingWeights.ToListAsync();
+
+        hasWorkout = Workouts.Any(x => x.UserId == userId.Value);
+        hasStartingWeights = startingWeights.Any(x => x.UserId == userId.Value);
+
+        if (!hasWorkout && hasStartingWeights)
+        {
+            foreach (var startingweight in startingWeights.Where(x => x.UserId == userId.Value))
+            {
+                NextWorkoutViewModel newModel = new NextWorkoutViewModel
+                    {
+                        exerciseName = Exercises.Find(x => x.ExerciseId == startingweight.ExerciseId).ExerciseName,
+                        weight = startingweight.Weight,
+                        isNew = true,
+                        workoutLoad = "medium"
+                    };
+                NextWorkout.Add(newModel);
+            }
+
+            nextWorkoutWeights = madCowWorkoutCalculator.NextWorkoutWeights(NextWorkout);
+        }
+
+    }
+
+    private void StartWorkout() 
+    {
+        bool newWorkout = false;
+
+        if (Workouts.Any(workout => workout.Date > DateTime.Now.AddDays(-10)) && NextWorkout.Any(x => x.isNew == false))
+        {
+            navigationManager.NavigateTo("/active-workout");
+        }
+        else
+        {
+            newWorkout = true;
+            string url = $"/active-workout?isNew={newWorkout}";
+            navigationManager.NavigateTo(url);
+        }
+
+
+    }
+    // TODO: Implement Deload
+    private void StartWorkoutDeload()
+    {
+
+    }
+
+}

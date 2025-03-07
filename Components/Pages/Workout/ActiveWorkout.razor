@@ -1,0 +1,51 @@
+﻿@page "/active-workout"
+@attribute [Authorize(Roles = "user")]
+
+@rendermode InteractiveServer
+
+@using MCPowerlifting.Helper
+@using MCPowerlifting.Models.Entities
+@using MCPowerlifting.Models.ViewModels
+
+
+@inject UserService Userservice
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+
+<div class="card">
+    <div class="card-header">
+        <h1>Active Workout</h1>
+    </div>
+    <div class="card-body">
+        @if (!isActive)
+        {
+            <ul class="list-group-flush list-group-horizontal">
+                <li>
+
+                </li>
+            </ul>
+        }
+
+    </div>
+
+</div>
+
+@code {
+    private bool isActive = false;
+
+    private bool isNew = false;
+
+
+    override protected async Task OnInitializedAsync()
+    {
+        var userId = Userservice.GetCurrentUserId();
+        // Abrufen der Query-Parameter aus der URL
+        var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
+        var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        
+        if (queryParameters.TryGetValue("isNew", out var isNewParam))
+        {
+            isNew = bool.Parse(isNewParam);
+        }
+    }
+}

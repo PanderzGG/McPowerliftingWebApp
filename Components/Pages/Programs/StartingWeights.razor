@@ -1,4 +1,5 @@
 ﻿@page "/starting-weights"
+@attribute [Authorize(Roles = "user")]
 
 @rendermode InteractiveServer
 
@@ -110,6 +111,8 @@
         }
     }
 
+
+    // TODO: Update Starting Weights
     private async Task SaveStartingWeights()
     {
         foreach(var add in ModelList)
@@ -130,5 +133,7 @@
         {
             return;
         }
+
+        navigationManager.NavigateTo("/");
     }
 }

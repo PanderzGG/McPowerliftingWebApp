@@ -23,14 +23,6 @@ namespace MCPowerlifting.Models.Entities
         public double ActualWeight { get; set; }
 
         [Required]
-        [Column("actual_sets")]
-        public int ActualSets { get; set; }
-
-        [Required]
-        [Column("actual_reps")]
-        public int ActualReps { get; set; }
-
-        [Required]
         [Column("is_successful")]
         public bool IsSuccessful { get; set; }
 
