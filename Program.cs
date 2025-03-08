@@ -3,6 +3,13 @@ using MCPowerlifting.Data;
 using MCPowerlifting.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+
+//Blazorise Lösch das wenn nicht funktioniert
+
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
+
 using System;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +20,15 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UserService>();
+
+// Blazorise Service
+builder.Services
+    .AddBlazorise(options =>
+    {
+        options.Immediate = true;
+    })
+    .AddBootstrap5Providers()
+    .AddFontAwesomeIcons();
 
 // Auth First Step
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

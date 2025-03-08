@@ -1,152 +1,202 @@
 ﻿@page "/active-workout"
 @attribute [Authorize(Roles = "user")]
 
-@rendermode InteractiveServer
-
 @using MCPowerlifting.Helper
 @using MCPowerlifting.Models.Entities
 @using MCPowerlifting.Models.ViewModels
 
-
+@rendermode InteractiveServer
 @inject UserService Userservice
 @inject AppDbContext appDbContext
 @inject NavigationManager navigationManager
 
-<div class="card">
-    <div class="card-header">
-        <h1>Active Workout</h1>
-    </div>
-    <div class="card-body">
-        <ul class="list-group list-group-horizontal">
+<Div Display="Display.Flex" Class="justify-content-center" Style="min-width:30rem;">
+    <Card Display="Display.Flex" Style="max-width:fit-content;">
+        <CardHeader>
+            <h1>Active Workout</h1>
+        </CardHeader>
+        <CardBody Display="Display.Flex" Class="justify-content-center">
             @if (!isActive)
             {
+                <ListGroup Display="Display.Flex">
+                    @foreach (var exercise in activeWeights)
+                    {
+                        <ListGroupItem>
+                            <Card Class="justify-content-center mx-4">
+                                <CardBody Display="Display.Flex" Class="justify-content-center mx-4">
+                                    <h4>@exercise.Key: @exercise.Value Kg</h4>
+                                </CardBody>
+                            </Card>
+                        </ListGroupItem>
 
-                @foreach (var exercise in activeWeights) 
-                {
-                    <li class="list-group-item">
-                        @exercise.Key: @exercise.Value Kg
-                    </li>
-                }
-                <li class="list-group-item">
-                    <button type="button" class="btn btn-primary" @onclick="ProgramStart">Start Workout</button>
-                </li>
-
+                    }
+                </ListGroup>
             }
             else if (isActive && !inExercise)
             {
-                @foreach (var exercise in activeWeights)
-                { 
-                    <li class="list-group-item">
-                        <div class="card">
-                            <div class="card-header">
-                                <h2>@exercise.Key</h2>
-                            </div>
-                            <div class="card-body">
-                                <h4>Weight: @exercise.Value Kg</h4>
-                            </div>
-                            <div class="card-footer">
-                                <button type="button" class="btn btn-primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</button>
-                            </div>
-                        </div>
-                    </li>
-                }
-            }
-        </ul>
-        @if (isActive && inExercise)
-        {
-            <h1>@currentExercise</h1>
-            <div class="card">
-                <div class="card-header">
-                    Warm Up
-                </div>
-                <div class="card-body">
-                    @if(!setList.Any(x => x.SetType == "warmup"))
+                <CardBody>
+                    @foreach (var exercise in activeWeights)
                     {
-                        <p>Not Enough weight on your working set yet.</p>
-                        <p>No warm up needed. Jump straight to the working sets</p>
+                        <Card Class="my-2">
+                            <CardHeader>
+                                <h2>@exercise.Key</h2>
+                            </CardHeader>
+                            <CardBody>
+                                <h4>Weight: @exercise.Value Kg</h4>
+                            </CardBody>
+                            <CardFooter Display="Display.Flex" Class="justify-content-center">
+                                <Button Color="Color.Primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</Button>
+                            </CardFooter>
+                        </Card>
+                    }
+                </CardBody>
+            }
+            @if (isActive && inExercise)
+            {
+                <Div Display="Display.Flex" Class="flex-column">
+                    <Div Display="Display.Flex" Class="justify-content-center">
+                        <h1>@currentExercise</h1>
+                    </Div>
+                    @if (!warmUpDone)
+                    {
+                        <Card Style="width:auto;">
+                            <CardHeader>
+                                <h3>Warm Up</h3>
+                            </CardHeader>
+                            <CardBody Display="Display.Flex" Class="justify-content-evenly">
+                                @if (!setList.Any(x => x.SetType == "warmup"))
+                                {
+                                    <ListGroup Flush>
+                                        <ListGroupItem>
+                                            <p>Not Enough weight on your working set yet.</p>
+                                        </ListGroupItem>
+                                        <ListGroupItem>
+                                            <p>No warm up needed. Jump straight to the working sets</p>
+                                        </ListGroupItem>
+                                        <ListGroupItem>
+                                            <Button Color="Color.Success" @onclick="() => warmUpDone = true">Okay</Button>
+                                        </ListGroupItem>
+                                    </ListGroup>
+                                }
+                                else
+                                {
+                                    @foreach (var set in setList.Where(x => x.SetType == "warmup"))
+                                    {
+                                        <Card Class="mx-2">
+                                            <CardHeader Display="Display.Flex" Class="justify-content-center">
+                                                <h4>Set @set.SetNumber</h4>
+                                            </CardHeader>
+                                            <CardBody>
+                                                @if (set.IsSuccessful == null)
+                                                {
+                                                    <h4>Weight: @set.SetWeight Kg</h4>
+                                                    <h4>Reps: @set.SetReps</h4>
+                                                }
+                                                else
+                                                {
+                                                    <Alert Color="Color.Success" Visible>
+                                                        <AlertMessage>Warm Up set Done</AlertMessage>
+                                                    </Alert>
+                                                }
+                                            </CardBody>
+                                            <CardFooter>
+                                                <Button Color="Color.Success" name="@set.SetNumber" @onclick="() => WarmUpDone(set)">Done</Button>
+                                            </CardFooter>
+                                        </Card>
+                                    }
+                                }
+                            </CardBody>
+                        </Card>
                     }
                     else
                     {
-                        <ul class="list-group list-group-horizontal">
-                            @foreach (var set in setList.Where(x => x.SetType == "warmup"))
-                            {
-                                <li class="list-group-item card">
-                                    <div class="card-header">
-                                        <h4>Set @set.SetNumber</h4>
-                                    </div>
-                                    <div class="card-body">
-                                        <h4>Weight: @set.SetWeight Kg</h4>
-                                        <h4>Reps: @set.SetReps</h4>
-                                    </div>
-                                    <div class="card-footer">
-                                        <input type="checkbox" class="btn-check" id="btn-@set.SetNumber-@set.SetType" checked autocomplete="off">
-                                        <label class="btn btn-primary" for="btn-@set.SetNumber-@set.SetType">Done</label>
-                                    </div>
-                                </li>
-                            }
-                        </ul>
+                        <Card>
+                            <CardHeader>
+                                Working Sets
+                            </CardHeader>
+                            <CardBody Display="Display.Flex" Class="justify-content-between">
+                                @foreach (var set in setList.Where(x => x.SetType == "working"))
+                                {
+                                    <Card>
+                                        <CardHeader>
+                                            <h4>Set @set.SetNumber</h4>
+                                        </CardHeader>
+                                        <CardBody>
+                                            @if (set.IsSuccessful.HasValue && set.IsSuccessful.Value)
+                                            {
+                                                <h4>Weight: @set.SetWeight Kg</h4>
+                                                <h4>Reps: @set.SetReps</h4>
+                                                <div class="alert alert-success">Set erfolgreich!</div>
+                                            }
+                                            else if (set.IsSuccessful.HasValue && !set.IsSuccessful.Value)
+                                            {
+                                                <h4>Weight: @set.SetWeight Kg</h4>
+                                                <h4>Reps: @set.SetReps</h4>
+                                                <div class="alert alert-danger">Set nicht geschafft!</div>
+                                            }
+                                            else
+                                            {
+                                                <h4>Weight: @set.SetWeight Kg</h4>
+                                                <h4>Reps: @set.SetReps</h4>
+                                            }
+                                        </CardBody>
+                                        <CardFooter>
+                                            <RadioGroup TValue="bool" Name="@($"succeed-{set.SetNumber}")" @bind-CheckedValue?="set.IsSuccessful" Buttons>
+                                                <Radio Value="true" Color="Color.Success"> Success</Radio>
+                                                <Radio Value="false" Color="Color.Danger">Failed</Radio>
+                                            </RadioGroup>
+                                        </CardFooter>
+                                    </Card>
+                                }
+                            </CardBody>
+                            <CardFooter>
+                                <Button Color="Color.Dark" Clicked="AbortModalShow">Abort Exercise</Button>
+                                <Button Color="Color.Primary" >Finish Exercise</Button>
+                            </CardFooter>
+                        </Card>
                     }
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    Working Sets
-                </div>
-                <div class="card-body">
-                    <ul class="list-group list-group-horizontal">
-                        @foreach (var set in setList.Where(x => x.SetType == "working"))
-                        {
-                            <li class="list-group-item card">
-                                <div class="card-header">
-                                    <h4>Set @set.SetNumber</h4>
-                                </div>
-                                <div class="card-body">
-                                    @if (set.IsSuccessful.HasValue && set.IsSuccessful.Value)
-                                    {
-                                        <h4>Weight: @set.SetWeight Kg</h4>
-                                        <h4>Reps: @set.SetReps</h4>
-                                        <div class="alert alert-success">Set erfolgreich!</div>
-                                    }
-                                    else if (set.IsSuccessful.HasValue && !set.IsSuccessful.Value)
-                                    {
-                                        <h4>Weight: @set.SetWeight Kg</h4>
-                                        <h4>Reps: @set.SetReps</h4>
-                                        <div class="alert alert-danger">Set nicht geschafft!</div>
-                                    }
-                                    else
-                                    {
-                                        <h4>Weight: @set.SetWeight Kg</h4>
-                                        <h4>Reps: @set.SetReps</h4>
-                                    }
-                                </div>
-                                <div class="card-footer">
-                                    <input type="radio" class="btn-check"
-                                           id="radio-@set.SetNumber-success"
-                                           name="options-@set.SetNumber"
-                                           checked="@(set.IsSuccessful == true)"
-                                           @onchange="@(() => set.IsSuccessful = true)" />
-                                    <label class="btn btn-success" for="radio-@set.SetNumber-success">Success</label>
-
-                                    <input type="radio" class="btn-check"
-                                           id="radio-@set.SetNumber-failed"
-                                           name="options-@set.SetNumber"
-                                           checked="@(set.IsSuccessful == false)"
-                                           @onchange="@(() => set.IsSuccessful = false)" />
-                                    <label class="btn btn-danger" for="radio-@set.SetNumber-failed">Failed</label>
-                                </div>
-                            </li>
-                        }
-                    </ul>
-                </div>
-                <div class="card-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="AbortExercise">Abort Exercise</button>
-                    <button type="button" class="btn btn-primary">Finish Exercise</button>
-                </div>
-            </div>
+                </Div> 
+            }
+        </CardBody>
+        @if (!isActive)
+        {
+            <CardFooter Display="Display.Flex" Class="justify-content-between">
+                <Button Color="Color.Dark" @onclick="AbortWorkout">Back</Button>
+                <Button Color="Color.Primary" @onclick="ProgramStart">Start Workout</Button>
+            </CardFooter>
         }
-    </div>
+        @if (isActive && !inExercise)
+        {
+            <CardFooter Display="Display.Flex" Class="justify-content-center">
+                <Button Color="Color.Danger" @onclick="AbortCurrent">Cancel Workout</Button>
+            </CardFooter>
+        }
+    </Card>
+</Div>
 
-</div>
+<!-- #region Modal-->
+<Modal @ref="abortModal">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Cancel Exercise?</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            <Alert Color="Color.Danger" Visible>
+                <AlertMessage>
+                    If you cancel the Exercise all progress will be lost!
+                </AlertMessage>
+            </Alert>
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" Clicked="AbortModalHide">Cancel</Button>
+            <Button Color="Color.Primary" Clicked="@(() => {AbortExercise(); AbortModalHide();})">Abort</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+<!-- #endregion -->
+
+
 
 @code {
 
@@ -171,11 +221,13 @@
 
     private bool isActive = false;
     private bool inExercise = false;
+    private bool warmUpDone = false;
+
 
     private bool isNew = false;
 
-    private bool isSuccessChecked { get; set; } = false;
-    private bool isFailedChecked { get; set; } = false;
+    // private bool isSuccessChecked { get; set; } = false;
+    // private bool isFailedChecked { get; set; } = false;
 
     override protected async Task OnInitializedAsync()
     {
@@ -209,6 +261,7 @@
     private void StartExercise(string exerciseName)
     {
         inExercise = true;
+        warmUpDone = false;
         currentExercise = exerciseName;
 
         double maxWeight = activeWeights[exerciseName];
@@ -217,8 +270,44 @@
 
     }
 
+    private void WarmUpDone(ActiveExercise set)
+    {
+        int lastSet = setList.Where(x => x.SetType == "warmup").Count();
+        set.IsSuccessful = true;
+        if(set.SetNumber == lastSet)
+        {
+            warmUpDone = true;
+        }
+        StateHasChanged();
+    }
+
     private void AbortExercise()
     {
         inExercise = false;
     }
+
+    private void AbortWorkout()
+    {
+        navigationManager.NavigateTo("/");
+    }
+
+    private void AbortCurrent()
+    {
+        isActive = false;
+    }
+
+
+    #region
+    private Modal abortModal;
+
+    private Task AbortModalShow()
+    {
+        return abortModal.Show();
+    }
+    private Task AbortModalHide()
+    {
+        return abortModal.Hide();
+    }
+    #endregion
+    
 }

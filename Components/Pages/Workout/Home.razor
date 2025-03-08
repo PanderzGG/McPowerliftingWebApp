@@ -13,52 +13,44 @@
 
 <PageTitle>Next Workout</PageTitle>
 
+<Div Class="d-grid">
+    <Card Class="col-4 mx-auto">
+        <CardHeader>
+            <h2 Class="text-center">Next Workout</h2>
+        </CardHeader>
+        <CardBody>
+            <ListGroup>
+                @foreach (var exercise in nextWorkoutWeights)
+                {
+                    <ListGroupItem>@exercise.Key: @exercise.Value Kg</ListGroupItem>
+                }
+            </ListGroup>
+            
+        </CardBody>
+        <CardFooter Display="Display.Flex" Class="justify-content-center">
+            <!-- Button trigger modal -->
+            <Button Color="Color.Primary" Clicked="@ShowModal" Style="width:20rem;">Start Workout</Button>
+        </CardFooter>
+    </Card>
+</Div>
 
-<div class="row">
-    <div class="card d-flex align-items-center justify-content-center" style="height: 50vh;">
-        <div class="card justify-content-center" style="max-width:30rem;">
-            <div class="card-header">
-                <h2 class="text-center">Next Workout</h2>
-            </div>
-            <div class="card-body">
-                <ul class="list-group-flush">
-                    @foreach (var exercise in nextWorkoutWeights)
-                    {
-                        <li class="list-group-item">
-                            @exercise.Key: @exercise.Value Kg
-                        </li>
-                    }
-                </ul>
-            </div>
-            <div class="card-footer">
-                <!-- Button trigger modal -->
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#startWorkoutQuestionModal">
-                    Start Workout
-                </button>
 
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="startWorkoutQuestionModal" tabindex="-1" aria-labelledby="startWorkoutQuestionLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Start workout?</h1>
-                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Do you want to start the workout now?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Not yet</button>
-                <button type="button" class="btn btn-primary" @onclick="StartWorkout">Start Workout</button>
-            </div>
-        </div>
-    </div>
-</div>
+<!--Modal-->
+<Modal @ref="StartWorkoutModal">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Start workout?</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            Do you want to start the workout now?
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" Clicked="@HideModal" >Not yet</Button>
+            <Button Color="Color.Primary" Clicked="@HideModal" @onclick="StartWorkout">Start Workout</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
 
 @code{
 
@@ -128,5 +120,25 @@
     {
 
     }
+
+    private void NavigateTest()
+    {
+        navigationManager.NavigateTo("/test");    
+    }
+
+    #region Modal
+    // reference to the modal component
+    private Modal StartWorkoutModal;
+
+    private Task ShowModal()
+    {
+        return StartWorkoutModal.Show();
+    }
+
+    private Task HideModal()
+    {
+        return StartWorkoutModal.Hide();
+    }
+    #endregion
 
 }
