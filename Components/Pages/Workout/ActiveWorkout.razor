@@ -100,7 +100,7 @@
                                                 }
                                             </CardBody>
                                             <CardFooter>
-                                                <Button Color="Color.Success" name="@set.SetNumber" @onclick="() => WarmUpDone(set)">Done</Button>
+                                                <Button Color="Color.Success" name="@set.SetNumber" @onclick="() => WarmUpSetDone(set)">Done</Button>
                                             </CardFooter>
                                         </Card>
                                     }
@@ -110,42 +110,54 @@
                     }
                     else
                     {
-                        <Card>
+                        <Card Display="Display.Flex">
                             <CardHeader>
                                 Working Sets
                             </CardHeader>
-                            <CardBody Display="Display.Flex" Class="justify-content-between">
+                            <CardBody Display="Display.Flex" Class="flex-column">
                                 @foreach (var set in setList.Where(x => x.SetType == "working"))
                                 {
-                                    <Card>
+                                    <Card Class="my-2">
                                         <CardHeader>
-                                            <h4>Set @set.SetNumber</h4>
-                                        </CardHeader>
-                                        <CardBody>
                                             @if (set.IsSuccessful.HasValue && set.IsSuccessful.Value)
                                             {
-                                                <h4>Weight: @set.SetWeight Kg</h4>
-                                                <h4>Reps: @set.SetReps</h4>
-                                                <div class="alert alert-success">Set erfolgreich!</div>
+                                                <Div><h4>Set @set.SetNumber</h4></Div>
+                                                <Div>
+                                                    <Alert Color="Color.Success" Visible>
+                                                        <AlertMessage>Set successful!</AlertMessage>
+                                                    </Alert>
+                                                </Div>
+                                                
                                             }
                                             else if (set.IsSuccessful.HasValue && !set.IsSuccessful.Value)
                                             {
+                                                <Div>
+                                                    <h4>Set @set.SetNumber</h4>
+                                                </Div>
+                                                <Div>
+                                                    <Alert Color="Color.Danger" Visible>
+                                                        <AlertMessage>Failed set.</AlertMessage>
+                                                    </Alert>
+                                                </Div>
+                                                
+                                            }
+                                        </CardHeader>
+                                        @if (set.IsSuccessful == null)
+                                        {
+                                            <CardBody>
                                                 <h4>Weight: @set.SetWeight Kg</h4>
                                                 <h4>Reps: @set.SetReps</h4>
-                                                <div class="alert alert-danger">Set nicht geschafft!</div>
-                                            }
-                                            else
-                                            {
-                                                <h4>Weight: @set.SetWeight Kg</h4>
-                                                <h4>Reps: @set.SetReps</h4>
-                                            }
-                                        </CardBody>
-                                        <CardFooter>
-                                            <RadioGroup TValue="bool" Name="@($"succeed-{set.SetNumber}")" @bind-CheckedValue?="set.IsSuccessful" Buttons>
-                                                <Radio Value="true" Color="Color.Success"> Success</Radio>
-                                                <Radio Value="false" Color="Color.Danger">Failed</Radio>
-                                            </RadioGroup>
-                                        </CardFooter>
+                                            </CardBody>
+                                        }
+                                        @if (set.IsSuccessful == null)
+                                        {
+                                            <CardFooter>
+                                                <Buttons>
+                                                    <Button Color="Color.Success" name="@($"success-{set.SetNumber}")" Clicked="() => WorkingSetDone(set, true)">Success</Button>
+                                                    <Button Color="Color.Danger" name="@($"failed-{set.SetNumber}")" Clicked="() => WorkingSetDone(set, false)">Failed</Button>
+                                                </Buttons>
+                                            </CardFooter>
+                                        }
                                     </Card>
                                 }
                             </CardBody>
@@ -162,7 +174,7 @@
         {
             <CardFooter Display="Display.Flex" Class="justify-content-between">
                 <Button Color="Color.Dark" @onclick="AbortWorkout">Back</Button>
-                <Button Color="Color.Primary" @onclick="ProgramStart">Start Workout</Button>
+                <Button Color="Color.Primary" @onclick="ProgramStart">Start Time</Button>
             </CardFooter>
         }
         @if (isActive && !inExercise)
@@ -270,7 +282,7 @@
 
     }
 
-    private void WarmUpDone(ActiveExercise set)
+    private void WarmUpSetDone(ActiveExercise set)
     {
         int lastSet = setList.Where(x => x.SetType == "warmup").Count();
         set.IsSuccessful = true;
@@ -279,6 +291,13 @@
             warmUpDone = true;
         }
         StateHasChanged();
+    }
+
+    private void WorkingSetDone(ActiveExercise set, bool isSuccess)
+    {
+        int lastSet = setList.Where(x => x.SetType == "working").Count();
+        set.IsSuccessful = isSuccess;
+
     }
 
     private void AbortExercise()

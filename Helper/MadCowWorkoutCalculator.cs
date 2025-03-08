@@ -37,6 +37,57 @@ namespace MCPowerlifting.Helper
                     }
                 }
             }
+            else if(!nextWeights.Any(x => x.isNew))
+            {
+                var load = nextWeights[0];
+
+                switch (load.workoutLoad)
+                {
+                        case "light":
+                            foreach (var pair in nextWeights)
+                            {
+                                switch (pair.exerciseName.ToLower())
+                                {
+                                    case "squat":
+                                        break;
+                                    case "overhead press":
+                                        break;
+                                    case "deadlift":
+                                        break;
+                                }
+                            }
+                            break;
+                        case "medium":
+                            foreach (var pair in nextWeights)
+                            {
+                                switch (pair.exerciseName.ToLower())
+                                {
+                                    case "squat":
+                                        break;
+                                    case "overhead press":
+                                        break;
+                                    case "barbell row":
+                                        break;
+                                }
+                            }
+                        break;
+                        case "heavy":
+                            foreach (var pair in nextWeights)
+                            {
+                                switch (pair.exerciseName.ToLower())
+                                {
+                                    case "squat":
+                                        break;
+                                    case "overhead press":
+                                        break;
+                                    case "barbell row":
+                                        break;
+                                }
+                            }
+                        break;
+                }
+                
+            }
             return exerciseWeights;
         }
 
@@ -162,41 +213,59 @@ namespace MCPowerlifting.Helper
         private List<ActiveExercise> CalculateWorkingSetWeights(string loadType, double maxWeight)
         {
             List<ActiveExercise> workingSet = new List<ActiveExercise>();
+            ActiveExercise set = new ActiveExercise();
 
             switch (loadType.ToLower())
             {
                 case "heavy":
-                    
-                    ActiveExercise set = new ActiveExercise();
 
                     for (int i = 0; i <= 4; i++)
                     {
-                        ActiveExercise tempSet = new ActiveExercise();
-                        tempSet.SetNumber = i + 1;
-                        tempSet.SetType = "working";
-                        tempSet.SetWeight = maxWeight - ((maxWeight * 0.125) * (5 - tempSet.SetNumber));
-                        tempSet.SetReps = 5;
-
-                        workingSet.Add(tempSet);
+                        workingSet.Add(new ActiveExercise
+                        {
+                            SetNumber = i + 1,
+                            SetType = "working",
+                            SetWeight = maxWeight - ((maxWeight * 0.125) * (5 - (i + 1))),
+                            SetReps = 5
+                        });
                     }
 
-                    set.SetNumber = 6;
-                    set.SetType = "working";
-                    set.SetWeight = workingSet.First(x => x.SetNumber == 3).SetWeight;
-                    set.SetReps = 8;
-
-                    workingSet.Add(set);
-
-                    
+                    workingSet.Add(new ActiveExercise
+                    {
+                        SetNumber = 6,
+                        SetType = "working",
+                        SetWeight = workingSet.First(x => x.SetNumber == 3).SetWeight,
+                        SetReps = 5
+                    });
                     break;
                 case "medium":
-                    
+
+                    for (int i = 0; i <= 4; i++)
+                    {
+                        workingSet.Add(new ActiveExercise
+                        {
+                            SetNumber = i + 1,
+                            SetType = "working",
+                            SetWeight = maxWeight - ((maxWeight * 0.125) * (4 - (i + 1))),
+                            SetReps = 5
+                        });
+                    }
                     break;
+
                 case "light":
-                    
+                    for (int i = 0; i <= 3; i++)
+                    {
+                        workingSet.Add(new ActiveExercise
+                        {
+                            SetNumber = i + 1,
+                            SetType = "working",
+                            SetWeight = maxWeight - ((maxWeight * 0.125) * (1 - (i + 1))),
+                            SetReps = 5
+                        });
+                        
+                    }
                     break;
             }
-
             return workingSet;
         }
 

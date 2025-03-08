@@ -23,7 +23,7 @@ namespace MCPowerlifting.Models.Entities
         public string? Notes { get; set; }
 
         [Column("load")]
-        public LoadType Load { get; set; }
+        public string Load { get; set; }
 
         // Navigation
         public User? User { get; set; }
@@ -34,11 +34,5 @@ namespace MCPowerlifting.Models.Entities
             WorkoutExercises = new List<WorkoutExercise>();
         }
 
-        public enum LoadType
-        {
-            Heavy,
-            Medium,
-            Light
-        }
     }
 }

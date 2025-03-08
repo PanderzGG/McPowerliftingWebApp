@@ -25,7 +25,7 @@
                     <ListGroupItem>@exercise.Key: @exercise.Value Kg</ListGroupItem>
                 }
             </ListGroup>
-            
+
         </CardBody>
         <CardFooter Display="Display.Flex" Class="justify-content-center">
             <!-- Button trigger modal -->
@@ -64,6 +64,8 @@
 
     private Dictionary<string, double> nextWorkoutWeights = new Dictionary<string, double>();
 
+    private int? userId;
+
     override protected async Task OnInitializedAsync()
     {
         bool hasWorkout = false;
@@ -72,7 +74,7 @@
         List<Exercise> Exercises = new List<Exercise>();
         Exercises = await appDbContext.Exercises.ToListAsync();
 
-        var userId = Userservice.GetCurrentUserId();
+        userId = Userservice.GetCurrentUserId();
         Workouts = await appDbContext.Workouts.Where(workout => workout.UserId == userId.Value).ToListAsync();
         startingWeights = await appDbContext.startingWeights.ToListAsync();
 
@@ -98,21 +100,51 @@
 
     }
 
-    private void StartWorkout() 
+    private async Task StartWorkout() 
     {
         bool newWorkout = false;
+        DateTime date = DateTime.Now;
+        Workout currentWorkout = new Workout();
+        Workout? lastWorkout = await appDbContext.Workouts.Where(x => x.UserId == userId.Value).OrderByDescending(x => x.Date).FirstOrDefaultAsync();
 
         if (Workouts.Any(workout => workout.Date > DateTime.Now.AddDays(-10)) && NextWorkout.Any(x => x.isNew == false))
         {
+            if (currentWorkout.Date == lastWorkout?.Date)
+            {
+                lastWorkout.Date = date;                
+            }
+            else
+            {
+                switch (lastWorkout.Load)
+                {
+                    case "light":
+                        currentWorkout.UserId = userId.Value;
+                        currentWorkout.Date = date.Date;
+
+                        break;
+                    case "medium":
+                        break;
+                    case "heavy":
+                        break;
+                }
+            }
+
             navigationManager.NavigateTo("/active-workout");
         }
         else
         {
             newWorkout = true;
+
             string url = $"/active-workout?isNew={newWorkout}";
+
+            currentWorkout.UserId = userId.Value;
+            currentWorkout.Date = date.Date;
+            currentWorkout.Load = "heavy";
+
+            
+
             navigationManager.NavigateTo(url);
         }
-
 
     }
     // TODO: Implement Deload
