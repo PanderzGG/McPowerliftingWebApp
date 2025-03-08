@@ -49,11 +49,14 @@ namespace MCPowerlifting.Helper
                                 switch (pair.exerciseName.ToLower())
                                 {
                                     case "squat":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                     case "overhead press":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                     case "deadlift":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                 }
                             }
                             break;
@@ -63,11 +66,14 @@ namespace MCPowerlifting.Helper
                                 switch (pair.exerciseName.ToLower())
                                 {
                                     case "squat":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                     case "overhead press":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                     case "barbell row":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                 }
                             }
                         break;
@@ -77,11 +83,14 @@ namespace MCPowerlifting.Helper
                                 switch (pair.exerciseName.ToLower())
                                 {
                                     case "squat":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                     case "overhead press":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                     case "barbell row":
-                                        break;
+                                        exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                    break;
                                 }
                             }
                         break;
@@ -219,23 +228,31 @@ namespace MCPowerlifting.Helper
             {
                 case "heavy":
 
-                    for (int i = 0; i <= 4; i++)
+                    for (int i = 0; i <= 3; i++)
                     {
                         workingSet.Add(new ActiveExercise
                         {
                             SetNumber = i + 1,
                             SetType = "working",
-                            SetWeight = maxWeight - ((maxWeight * 0.125) * (5 - (i + 1))),
+                            SetWeight = maxWeight - ((maxWeight * 0.125) * (3 - (i))),
                             SetReps = 5
                         });
                     }
 
                     workingSet.Add(new ActiveExercise
                     {
+                        SetNumber = 5,
+                        SetType = "working",
+                        SetWeight = maxWeight,
+                        SetReps = 3
+                    });
+
+                    workingSet.Add(new ActiveExercise
+                    {
                         SetNumber = 6,
                         SetType = "working",
                         SetWeight = workingSet.First(x => x.SetNumber == 3).SetWeight,
-                        SetReps = 5
+                        SetReps = 8
                     });
                     break;
                 case "medium":
@@ -246,7 +263,7 @@ namespace MCPowerlifting.Helper
                         {
                             SetNumber = i + 1,
                             SetType = "working",
-                            SetWeight = maxWeight - ((maxWeight * 0.125) * (4 - (i + 1))),
+                            SetWeight = maxWeight - ((maxWeight * 0.125) * (4 - (i))),
                             SetReps = 5
                         });
                     }
@@ -259,7 +276,7 @@ namespace MCPowerlifting.Helper
                         {
                             SetNumber = i + 1,
                             SetType = "working",
-                            SetWeight = maxWeight - ((maxWeight * 0.125) * (1 - (i + 1))),
+                            SetWeight = maxWeight - ((maxWeight * 0.125) * (3 - (i))),
                             SetReps = 5
                         });
                         

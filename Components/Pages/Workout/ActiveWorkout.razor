@@ -114,10 +114,10 @@
                             <CardHeader>
                                 Working Sets
                             </CardHeader>
-                            <CardBody Display="Display.Flex" Class="flex-column">
+                            <CardBody Display="Display.Flex">
                                 @foreach (var set in setList.Where(x => x.SetType == "working"))
                                 {
-                                    <Card Class="my-2">
+                                    <Card Class="mx-3">
                                         <CardHeader>
                                             @if (set.IsSuccessful.HasValue && set.IsSuccessful.Value)
                                             {
@@ -140,6 +140,10 @@
                                                     </Alert>
                                                 </Div>
                                                 
+                                            }
+                                            else
+                                            {
+                                                <h4>Set @set.SetNumber</h4>
                                             }
                                         </CardHeader>
                                         @if (set.IsSuccessful == null)
@@ -260,7 +264,7 @@
 
                 activeWeights = madCowWorkoutCalculator.CalculateFromStartingWeight(startingWeights);
 
-                Model.WorkoutLoad = "Heavy";
+                Model.WorkoutLoad = "medium";
             }
         }
     }
