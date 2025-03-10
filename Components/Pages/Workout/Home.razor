@@ -24,7 +24,10 @@
                 <ListGroup>
                     @foreach (var exercise in nextWorkoutWeights)
                     {
-                        <ListGroupItem>@exercise.Key: @exercise.Value Kg</ListGroupItem>
+                        double weight = exercise.Value * 2;
+                        double roundedWeight = Math.Round(weight, MidpointRounding.AwayFromZero) / 2;
+
+                        <ListGroupItem>@exercise.Key: @roundedWeight Kg</ListGroupItem>
                     }
                 </ListGroup>
             }
@@ -43,7 +46,7 @@
                 <Button Color="Color.Primary" Clicked="@ShowModal" Style="width:20rem;">Start Workout</Button>
             </CardFooter>
         }
-        
+
     </Card>
 </Div>
 
@@ -111,7 +114,7 @@
 
         }
 
-        startingWeights = await appDbContext.startingWeights.ToListAsync();
+        startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
 
         hasWorkout = Workouts.Any(x => x.UserId == userId.Value);
         hasStartingWeights = startingWeights.Any(x => x.UserId == userId.Value);
@@ -136,6 +139,7 @@
         {
 
             string lastLoad;
+            string newLoad = "";
             bool lastNew;
 
             lastLoad = Workouts.FirstOrDefault().Load;
@@ -143,18 +147,37 @@
             switch (lastLoad)
             {
                 case "light":
-                    WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "heavy").ToListAsync();
+                    WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "heavy" ).ToListAsync();
+                    newLoad = "heavy";
                     break;
                 case "medium":
                     WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "light").ToListAsync();
+                    newLoad = "light"; 
                     break;
                 case "heavy":
                     WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "medium").ToListAsync();
+                    newLoad = "medium";
                     break;
             }
 
-
-            switch (lastLoad)
+            if(WorkoutExercises.Count() == 0)
+            {
+                foreach(var startingweight in startingWeights.Where(x => x.UserId == userId.Value))
+                {
+                    NextWorkoutViewModel newModel = new NextWorkoutViewModel
+                        {
+                            exerciseName = Exercises.Find(x => x.ExerciseId == startingweight.ExerciseId).ExerciseName,
+                            weight = startingweight.Weight,
+                            isNew = true,
+                            isSuccesful = true,
+                            workoutLoad = newLoad
+                        };
+                    NextWorkout.Add(newModel);
+                }
+            }
+            else
+            {
+                switch (lastLoad)
             {
                 case "light":
                     foreach (var startingWeight in WorkoutExercises)
@@ -165,7 +188,7 @@
                                 weight = startingWeight.ActualWeight,
                                 isNew = false,
                                 isSuccesful = startingWeight.IsSuccessful,
-                                workoutLoad = "heavy"
+                                workoutLoad = newLoad
                             };
                         NextWorkout.Add(newModel);
                     }
@@ -181,7 +204,7 @@
                                     weight = startingWeight.Weight,
                                     isNew = true,
                                     isSuccesful = true,
-                                    workoutLoad = "light"
+                                    workoutLoad = newLoad
                                 };
                             NextWorkout.Add(newModel);
                         }
@@ -196,7 +219,7 @@
                                     weight = startingWeight.ActualWeight,
                                     isNew = false,
                                     isSuccesful = startingWeight.IsSuccessful,
-                                    workoutLoad = "light"
+                                    workoutLoad = newLoad
                                 };
                             NextWorkout.Add(newModel);
                         }
@@ -211,12 +234,14 @@
                                 weight = startingWeight.ActualWeight,
                                 isNew = false,
                                 isSuccesful = startingWeight.IsSuccessful,
-                                workoutLoad = "medium"
+                                workoutLoad = newLoad
                             };
                         NextWorkout.Add(newModel);
                     }
                     break;
             }
+            }
+            
             nextWorkoutWeights = madCowWorkoutCalculator.NextWorkoutWeights(NextWorkout);
         }
     }
@@ -229,7 +254,7 @@
         // Workout currentWorkout = new Workout();
         Workout? lastWorkout = await appDbContext.Workouts.Where(x => x.UserId == userId.Value).OrderByDescending(x => x.Date).FirstOrDefaultAsync();
 
-        if (Workouts.Any(x => x.Date > DateTime.Now.AddDays(-10)))
+        if (Workouts.Any(x => x.Date > DateTime.Now.AddDays(-30)))
         {
             url = "/active-Workout";
 

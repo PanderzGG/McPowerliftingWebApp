@@ -21,10 +21,12 @@
                 <ListGroup Display="Display.Flex">
                     @foreach (var exercise in activeWeights)
                     {
+                        double roundedWeight = Math.Round(exercise.Value, 2);
+
                         <ListGroupItem>
                             <Card Class="justify-content-center mx-4">
                                 <CardBody Display="Display.Flex" Class="justify-content-center mx-4">
-                                    <h4>@exercise.Key: @exercise.Value Kg</h4>
+                                    <h4>@exercise.Key: @roundedWeight Kg</h4>
                                 </CardBody>
                             </Card>
                         </ListGroupItem>
@@ -37,6 +39,9 @@
                 <CardBody>
                     @foreach (var exercise in activeWeights)
                     {
+                        double weight = exercise.Value * 2;
+                        double roundedWeight = Math.Round(weight, MidpointRounding.AwayFromZero) / 2;
+
                         if(!doneExercises.Contains(exercise.Key))
                         {
                             <Card Class="my-2">
@@ -44,7 +49,7 @@
                                     <h2>@exercise.Key</h2>
                                 </CardHeader>
                                 <CardBody>
-                                    <h4>Weight: @exercise.Value Kg</h4>
+                                    <h4>Weight: @roundedWeight Kg</h4>
                                 </CardBody>
                                 <CardFooter Display="Display.Flex" Class="justify-content-center">
                                     <Button Color="Color.Primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</Button>
@@ -58,7 +63,7 @@
                                     <h2>@exercise.Key</h2>
                                 </CardHeader>
                                 <CardBody>
-                                    <h4>Weight: @exercise.Value Kg</h4>
+                                    <h4>Weight: @roundedWeight Kg</h4>
                                 </CardBody>
                                 <CardFooter Display="Display.Flex" Class="justify-content-center">
                                     @* <Button Color="Color.Primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</Button> *@
@@ -140,6 +145,9 @@
                             <CardBody Display="Display.Flex">
                                 @foreach (var set in setList.Where(x => x.SetType == "working"))
                                 {
+                                    double weight = set.SetWeight * 2;
+                                    double roundedWeight = Math.Round(weight, MidpointRounding.AwayFromZero) / 2;
+
                                     <Card Class="mx-3">
                                         <CardHeader>
                                             @if (set.IsSuccessful.HasValue && set.IsSuccessful.Value)
@@ -172,7 +180,7 @@
                                         @if (set.IsSuccessful == null)
                                         {
                                             <CardBody>
-                                                <h4>Weight: @set.SetWeight Kg</h4>
+                                                <h4>Weight: @roundedWeight Kg</h4>
                                                 <h4>Reps: @set.SetReps</h4>
                                             </CardBody>
                                         }
@@ -210,7 +218,7 @@
             if(activeWeights.Count() == doneExercises.Count())
             {
                 <CardFooter Display="Display.Flex" Class="justify-content-center">
-                    <Button Color="Color.Success" @onclick="AbortCurrent">Finish Workout</Button>
+                    <Button Color="Color.Success" @onclick="FinishWorkout">Finish Workout</Button>
                 </CardFooter>
             }
             else
@@ -309,7 +317,7 @@
                 List<Starting_Weights> startingWeights = new List<Starting_Weights>();
                 startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
 
-                activeWeights = madCowWorkoutCalculator.CalculateFromStartingWeight(startingWeights);
+                activeWeights = madCowWorkoutCalculator.CalculateFromStartingWeight(startingWeights, "medium");
 
                 Model.WorkoutLoad = "medium";
             }
@@ -325,7 +333,7 @@
                 List<ActiveExercise> lastExercises = new List<ActiveExercise>();
 
                 string load = workouts.FirstOrDefault(x => x.WorkoutId == lastWorkoutId).Load;
-                
+
 
                 switch(load.ToLower())
                 {
@@ -340,22 +348,33 @@
                         break;
                 }
 
-                lastWorkoutId = workouts.FirstOrDefault(x => x.Load == Model.WorkoutLoad && x.Date.Date != DateTime.Now.Date).WorkoutId;
-                lastWorkoutExercises = workoutExercises.Where(x => x.WorkoutId == lastWorkoutId).ToList();
-
-                foreach (var exercise in lastWorkoutExercises)
+                if (workouts.Any(x => x.Load == Model.WorkoutLoad && x.Date.Date != DateTime.Now.Date))
                 {
+                    lastWorkoutId = workouts.FirstOrDefault(x => x.Load == Model.WorkoutLoad && x.Date.Date != DateTime.Now.Date).WorkoutId;
+                    lastWorkoutExercises = workoutExercises.Where(x => x.WorkoutId == lastWorkoutId).ToList();
 
-                    lastExercises.Add(new ActiveExercise
-                        {
-                            ExerciseName = exercise.Exercise.ExerciseName,
-                            Load = Model.WorkoutLoad,
-                            SetWeight = exercise.ActualWeight,
-                            FailInRow = exercise.FailureInRow
-                        });
+                    foreach (var exercise in lastWorkoutExercises)
+                    {
+
+                        lastExercises.Add(new ActiveExercise
+                            {
+                                ExerciseName = exercise.Exercise.ExerciseName,
+                                Load = Model.WorkoutLoad,
+                                SetWeight = exercise.ActualWeight,
+                                FailInRow = exercise.FailureInRow
+                            });
+                    }
+
+                    activeWeights = madCowWorkoutCalculator.CalculateFromPreviousWeight(lastExercises);
                 }
+                else
+                {
+                    string startingLoad = Model.WorkoutLoad;
+                    List<Starting_Weights>  startingWeights =new List<Starting_Weights>();
+                    startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
 
-                activeWeights = madCowWorkoutCalculator.CalculateFromPreviousWeight(lastExercises);
+                    activeWeights = madCowWorkoutCalculator.CalculateFromStartingWeight(startingWeights, startingLoad);
+                }
             }
         }
     }
@@ -467,14 +486,25 @@
         inExercise = false;
     }
 
-    private void AbortWorkout()
+    private async Task AbortWorkout()
     {
+        var workout = appDbContext.Workouts.FirstOrDefault(x => x.UserId == Model.UserId && x.Date.Date == DateTime.Now.Date);
+        if(workout != null)
+        {
+            appDbContext.Workouts.Remove(workout);
+            await appDbContext.SaveChangesAsync();
+        }
         navigationManager.NavigateTo("/");
     }
 
     private void AbortCurrent()
     {
         isActive = false;
+    }
+
+    private void FinishWorkout()
+    {
+        navigationManager.NavigateTo("/");
     }
 
 
