@@ -4,6 +4,7 @@
 @using MCPowerlifting.Helper
 @using MCPowerlifting.Models.Entities
 @using MCPowerlifting.Models.ViewModels
+@using System.Timers
 
 @rendermode InteractiveServer
 @inject UserService Userservice
@@ -37,6 +38,7 @@
             else if (isActive && !inExercise)
             {
                 <CardBody>
+                    <p>@overallFormattedTime</p>
                     @foreach (var exercise in activeWeights)
                     {
                         double weight = exercise.Value * 2;
@@ -128,7 +130,7 @@
                                                 }
                                             </CardBody>
                                             <CardFooter>
-                                                <Button Color="Color.Success" name="@set.SetNumber" @onclick="() => WarmUpSetDone(set)">Done</Button>
+                                                <Button Color="Color.Success" name="@set.SetNumber" Clicked="() => WarmUpSetDone(set)">Done</Button>
                                             </CardFooter>
                                         </Card>
                                     }
@@ -257,7 +259,6 @@
 
 
 @code {
-
     private ActiveWorkoutViewModel Model = new ActiveWorkoutViewModel();
     private MadCowWorkoutCalculator madCowWorkoutCalculator = new MadCowWorkoutCalculator();
 
@@ -273,6 +274,9 @@
 
     private Dictionary<string, double> activeWeights = new Dictionary<string, double>();
 
+    private Timer overallTimer = new Timer();
+    private int overallCurrentTime = 0;
+    private string overallFormattedTime => TimeSpan.FromSeconds(overallCurrentTime).ToString(@"hh\:mm\:ss");
     //Todo: Implementierung auswahl verschiedener Workouts
     // private List<Program> programs = new List<Program>();
     // InDev hilfe, da nur ein program
@@ -288,6 +292,19 @@
 
     // private bool isSuccessChecked { get; set; } = false;
     // private bool isFailedChecked { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        overallTimer = new Timer(1000);
+        overallTimer.Elapsed += OnTimerElapsed;
+        overallTimer.AutoReset = true;
+    }
+
+    private void OnTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        overallCurrentTime++;
+        InvokeAsync(() => StateHasChanged());
+    }
 
     override protected async Task OnInitializedAsync()
     {
@@ -382,6 +399,7 @@
     private void ProgramStart()
     {
         isActive = true;
+        StartTimer();
     }
 
     private void StartExercise(string exerciseName)
@@ -412,8 +430,10 @@
     {
         int lastSet = setList.Where(x => x.SetType == "working").Count();
         set.IsSuccessful = isSuccess;
+        
 
     }
+    
 
     private async Task FinishExercise()
     {
@@ -500,14 +520,25 @@
     private void AbortCurrent()
     {
         isActive = false;
+        ResetTimer();
     }
 
     private void FinishWorkout()
     {
         navigationManager.NavigateTo("/");
+        ResetTimer();
     }
+    
 
-
+    private void StartTimer() => overallTimer.Start();
+    private void StopTimer() => overallTimer.Stop();
+    private void ResetTimer()
+    {
+        overallTimer.Stop();
+        overallCurrentTime = 0;
+        StateHasChanged();
+    }
+    
     #region
     private Modal abortModal;
 
