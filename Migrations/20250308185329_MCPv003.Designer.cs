@@ -4,6 +4,7 @@ using MCPowerlifting.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MCPowerlifting.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250308185329_MCPv003")]
+    partial class MCPv003
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -220,10 +223,6 @@ namespace MCPowerlifting.Migrations
                     b.Property<int>("ExerciseId")
                         .HasColumnType("int")
                         .HasColumnName("exercise_id");
-
-                    b.Property<int>("FailureInRow")
-                        .HasColumnType("int")
-                        .HasColumnName("failure_in_row");
 
                     b.Property<bool>("IsSuccessful")
                         .HasColumnType("tinyint(1)")

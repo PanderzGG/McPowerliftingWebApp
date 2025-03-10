@@ -37,17 +37,40 @@
                 <CardBody>
                     @foreach (var exercise in activeWeights)
                     {
-                        <Card Class="my-2">
-                            <CardHeader>
-                                <h2>@exercise.Key</h2>
-                            </CardHeader>
-                            <CardBody>
-                                <h4>Weight: @exercise.Value Kg</h4>
-                            </CardBody>
-                            <CardFooter Display="Display.Flex" Class="justify-content-center">
-                                <Button Color="Color.Primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</Button>
-                            </CardFooter>
-                        </Card>
+                        if(!doneExercises.Contains(exercise.Key))
+                        {
+                            <Card Class="my-2">
+                                <CardHeader>
+                                    <h2>@exercise.Key</h2>
+                                </CardHeader>
+                                <CardBody>
+                                    <h4>Weight: @exercise.Value Kg</h4>
+                                </CardBody>
+                                <CardFooter Display="Display.Flex" Class="justify-content-center">
+                                    <Button Color="Color.Primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</Button>
+                                </CardFooter>
+                            </Card>
+                        }
+                        else
+                        {
+                            <Card Class="my-2">
+                                <CardHeader>
+                                    <h2>@exercise.Key</h2>
+                                </CardHeader>
+                                <CardBody>
+                                    <h4>Weight: @exercise.Value Kg</h4>
+                                </CardBody>
+                                <CardFooter Display="Display.Flex" Class="justify-content-center">
+                                    @* <Button Color="Color.Primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</Button> *@
+                                    <Alert Color="Color.Success">
+                                        <AlertMessage>
+                                            Done
+                                        </AlertMessage>
+                                    </Alert>
+                                </CardFooter>
+                            </Card>
+                        }
+
                     }
                 </CardBody>
             }
@@ -127,7 +150,7 @@
                                                         <AlertMessage>Set successful!</AlertMessage>
                                                     </Alert>
                                                 </Div>
-                                                
+
                                             }
                                             else if (set.IsSuccessful.HasValue && !set.IsSuccessful.Value)
                                             {
@@ -139,7 +162,7 @@
                                                         <AlertMessage>Failed set.</AlertMessage>
                                                     </Alert>
                                                 </Div>
-                                                
+
                                             }
                                             else
                                             {
@@ -167,7 +190,7 @@
                             </CardBody>
                             <CardFooter>
                                 <Button Color="Color.Dark" Clicked="AbortModalShow">Abort Exercise</Button>
-                                <Button Color="Color.Primary" >Finish Exercise</Button>
+                                <Button Color="Color.Primary" Clicked="FinishExercise">Finish Exercise</Button>
                             </CardFooter>
                         </Card>
                     }
@@ -183,9 +206,20 @@
         }
         @if (isActive && !inExercise)
         {
-            <CardFooter Display="Display.Flex" Class="justify-content-center">
-                <Button Color="Color.Danger" @onclick="AbortCurrent">Cancel Workout</Button>
-            </CardFooter>
+
+            if(activeWeights.Count() == doneExercises.Count())
+            {
+                <CardFooter Display="Display.Flex" Class="justify-content-center">
+                    <Button Color="Color.Success" @onclick="AbortCurrent">Finish Workout</Button>
+                </CardFooter>
+            }
+            else
+            {
+                <CardFooter Display="Display.Flex" Class="justify-content-center">
+                    <Button Color="Color.Danger" @onclick="AbortCurrent">Cancel Workout</Button>
+                </CardFooter>
+            }
+
         }
     </Card>
 </Div>
@@ -223,7 +257,9 @@
 
     private List<Exercise> exercises = new List<Exercise>();
     private List<Workout> workouts = new List<Workout>();
-    private List<WorkoutExercise> workoutExercises = new List<WorkoutExercise>();
+    private List<WorkoutExercise>? workoutExercises = new List<WorkoutExercise>();
+
+    private List<string> doneExercises = new List<string>();
 
     private List<ActiveExercise> setList = new List<ActiveExercise>();
 
@@ -248,10 +284,21 @@
     override protected async Task OnInitializedAsync()
     {
         var userId = Userservice.GetCurrentUserId();
+        if(userId.Value != null)
+        {
+            Model.UserId = userId.Value;
+        }
         // Abrufen der Query-Parameter aus der URL
         var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
         var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
+        exercises = await appDbContext.Exercises.ToListAsync();
+        workoutExercises = await appDbContext.workoutExercises.ToListAsync();
+
+        workouts = await appDbContext.Workouts.Where(x => x.UserId == userId).ToListAsync();
+        workouts = workouts.OrderByDescending(x => x.Date).ToList();
+
+        // TODO DELOAD CHECKEN UND SPEICHERN
 
         if (queryParameters.TryGetValue("isNew", out var isNewParam))
         {
@@ -265,6 +312,50 @@
                 activeWeights = madCowWorkoutCalculator.CalculateFromStartingWeight(startingWeights);
 
                 Model.WorkoutLoad = "medium";
+            }
+        }
+        else
+        {
+            int? lastWorkoutId = workouts.FirstOrDefault(x => x.Date.Date != DateTime.Now.Date)?.WorkoutId;
+
+
+            if (lastWorkoutId != null)
+            {
+                List<WorkoutExercise> lastWorkoutExercises = new List<WorkoutExercise>();
+                List<ActiveExercise> lastExercises = new List<ActiveExercise>();
+
+                string load = workouts.FirstOrDefault(x => x.WorkoutId == lastWorkoutId).Load;
+                
+
+                switch(load.ToLower())
+                {
+                    case "light":
+                        Model.WorkoutLoad = "heavy";
+                        break;
+                    case "medium":
+                        Model.WorkoutLoad = "light";
+                        break;
+                    case "heavy":
+                        Model.WorkoutLoad = "medium";
+                        break;
+                }
+
+                lastWorkoutId = workouts.FirstOrDefault(x => x.Load == Model.WorkoutLoad && x.Date.Date != DateTime.Now.Date).WorkoutId;
+                lastWorkoutExercises = workoutExercises.Where(x => x.WorkoutId == lastWorkoutId).ToList();
+
+                foreach (var exercise in lastWorkoutExercises)
+                {
+
+                    lastExercises.Add(new ActiveExercise
+                        {
+                            ExerciseName = exercise.Exercise.ExerciseName,
+                            Load = Model.WorkoutLoad,
+                            SetWeight = exercise.ActualWeight,
+                            FailInRow = exercise.FailureInRow
+                        });
+                }
+
+                activeWeights = madCowWorkoutCalculator.CalculateFromPreviousWeight(lastExercises);
             }
         }
     }
@@ -281,6 +372,7 @@
         currentExercise = exerciseName;
 
         double maxWeight = activeWeights[exerciseName];
+        Model.Weight = maxWeight;
 
         setList = madCowWorkoutCalculator.CalculateExercise(exerciseName, maxWeight, Model.WorkoutLoad);
 
@@ -303,6 +395,72 @@
         set.IsSuccessful = isSuccess;
 
     }
+
+    private async Task FinishExercise()
+    {
+        bool success;
+        int failureInRow;
+        int exerciseId;
+        int workoutId = workouts.First().WorkoutId;
+        string exercise = setList.First().ExerciseName;
+
+        success = setList.All(x => x.IsSuccessful == true);        
+        exerciseId = exercises.FirstOrDefault(x => x.ExerciseName == exercise).ExerciseId;
+        Model.ExerciseId = exerciseId;
+        Model.WorkoutId = workoutId;
+
+
+
+        if(success)
+        {
+            WorkoutExercise workoutExercise = new WorkoutExercise
+            {
+                    WorkoutId = Model.WorkoutId,
+                    ExerciseId = Model.ExerciseId,
+                    ActualWeight = Model.Weight,
+                    IsSuccessful = success,
+                    FailureInRow = 0,
+                    Notes = ""
+            };
+            appDbContext.workoutExercises.Add(workoutExercise);
+        }
+        else
+        {
+            if(workoutExercises.Count() != 0)
+            {
+                failureInRow = workoutExercises.FirstOrDefault(x => x.ExerciseId == Model.ExerciseId).FailureInRow;
+                failureInRow++;
+            }
+            else
+            {
+                failureInRow = 1;
+            }
+
+            WorkoutExercise workoutExercise = new WorkoutExercise
+                {
+                    WorkoutId = Model.WorkoutId,
+                    ExerciseId = Model.ExerciseId,
+                    ActualWeight = Model.Weight,
+                    IsSuccessful = false,
+                    FailureInRow = failureInRow,
+                    Notes = ""
+                };
+            appDbContext.workoutExercises.Add(workoutExercise);
+        }
+        try
+        {
+            await appDbContext.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        inExercise = false;
+        doneExercises.Add(exercise);
+        StateHasChanged();
+    }
+
 
     private void AbortExercise()
     {

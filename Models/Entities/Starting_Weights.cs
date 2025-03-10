@@ -6,6 +6,7 @@ namespace MCPowerlifting.Models.Entities
 {
     [Table("starting_weights")]
     public class Starting_Weights
+
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

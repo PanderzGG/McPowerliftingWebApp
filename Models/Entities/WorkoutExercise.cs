@@ -26,6 +26,9 @@ namespace MCPowerlifting.Models.Entities
         [Column("is_successful")]
         public bool IsSuccessful { get; set; }
 
+        [Column("failure_in_row")]
+        public int FailureInRow { get; set; }
+
         [Column("notes")]
         public string? Notes { get; set; }
 

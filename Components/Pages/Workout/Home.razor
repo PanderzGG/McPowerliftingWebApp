@@ -16,21 +16,34 @@
 <Div Class="d-grid">
     <Card Class="col-4 mx-auto">
         <CardHeader>
-            <h2 Class="text-center">Next Workout</h2>
+            <h2 Class="text-center">Todays Workout</h2>
         </CardHeader>
         <CardBody>
-            <ListGroup>
-                @foreach (var exercise in nextWorkoutWeights)
-                {
-                    <ListGroupItem>@exercise.Key: @exercise.Value Kg</ListGroupItem>
-                }
-            </ListGroup>
-
+            @if(!doneToday)
+            {
+                <ListGroup>
+                    @foreach (var exercise in nextWorkoutWeights)
+                    {
+                        <ListGroupItem>@exercise.Key: @exercise.Value Kg</ListGroupItem>
+                    }
+                </ListGroup>
+            }
+            else
+            {
+                <Alert Color="Color.Success" Visible>
+                    <AlertMessage>Good job! Your Workout is done for the day. Come back next Time!</AlertMessage>
+                </Alert>
+            }
         </CardBody>
-        <CardFooter Display="Display.Flex" Class="justify-content-center">
-            <!-- Button trigger modal -->
-            <Button Color="Color.Primary" Clicked="@ShowModal" Style="width:20rem;">Start Workout</Button>
-        </CardFooter>
+        @if (!doneToday)
+        {
+            <CardFooter Display="Display.Flex" Class="justify-content-center">
+                <!-- Button trigger modal -->
+
+                <Button Color="Color.Primary" Clicked="@ShowModal" Style="width:20rem;">Start Workout</Button>
+            </CardFooter>
+        }
+        
     </Card>
 </Div>
 
@@ -59,23 +72,45 @@
     private MadCowWorkoutCalculator madCowWorkoutCalculator = new MadCowWorkoutCalculator();
 
     private List<Workout> Workouts { get; set; } = new List<Workout>();
+    private List<WorkoutExercise>? WorkoutExercises { get; set; } = new List<WorkoutExercise>();
     private List<Starting_Weights> startingWeights { get; set; } = new List<Starting_Weights>();
     private List<NextWorkoutViewModel> NextWorkout { get; set; } = new List<NextWorkoutViewModel>();
 
     private Dictionary<string, double> nextWorkoutWeights = new Dictionary<string, double>();
 
+
     private int? userId;
+    private bool doneToday = false;
 
     override protected async Task OnInitializedAsync()
     {
+        await LoadData();
+    }
+
+    protected async Task LoadData()
+    {
         bool hasWorkout = false;
         bool hasStartingWeights = false;
+        int lastWorkoutId = 0;
 
         List<Exercise> Exercises = new List<Exercise>();
         Exercises = await appDbContext.Exercises.ToListAsync();
 
         userId = Userservice.GetCurrentUserId();
         Workouts = await appDbContext.Workouts.Where(workout => workout.UserId == userId.Value).ToListAsync();
+
+        if (Workouts.Count() != 0)
+        {
+            Workouts = Workouts.OrderByDescending(x => x.Date).ToList();
+            lastWorkoutId = Workouts.FirstOrDefault().WorkoutId;
+
+            if(Workouts.First().Date.Date == DateTime.Now.Date)
+            {
+                doneToday = true;
+            }
+
+        }
+
         startingWeights = await appDbContext.startingWeights.ToListAsync();
 
         hasWorkout = Workouts.Any(x => x.UserId == userId.Value);
@@ -90,61 +125,164 @@
                         exerciseName = Exercises.Find(x => x.ExerciseId == startingweight.ExerciseId).ExerciseName,
                         weight = startingweight.Weight,
                         isNew = true,
+                        isSuccesful = true,
                         workoutLoad = "medium"
                     };
                 NextWorkout.Add(newModel);
             }
-
             nextWorkoutWeights = madCowWorkoutCalculator.NextWorkoutWeights(NextWorkout);
         }
+        else if (hasWorkout)
+        {
 
+            string lastLoad;
+            bool lastNew;
+
+            lastLoad = Workouts.FirstOrDefault().Load;
+
+            switch (lastLoad)
+            {
+                case "light":
+                    WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "heavy").ToListAsync();
+                    break;
+                case "medium":
+                    WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "light").ToListAsync();
+                    break;
+                case "heavy":
+                    WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "medium").ToListAsync();
+                    break;
+            }
+
+
+            switch (lastLoad)
+            {
+                case "light":
+                    foreach (var startingWeight in WorkoutExercises)
+                    {
+                        NextWorkoutViewModel newModel = new NextWorkoutViewModel
+                            {
+                                exerciseName = Exercises.Find(x => x.ExerciseId == startingWeight.ExerciseId).ExerciseName,
+                                weight = startingWeight.ActualWeight,
+                                isNew = false,
+                                isSuccesful = startingWeight.IsSuccessful,
+                                workoutLoad = "heavy"
+                            };
+                        NextWorkout.Add(newModel);
+                    }
+                    break;
+                case "medium":
+                    if (!Workouts.Any(x => x.Load == "light"))
+                    {
+                        foreach (var startingWeight in startingWeights.Where(x => x.UserId == userId.Value))
+                        {
+                            NextWorkoutViewModel newModel = new NextWorkoutViewModel
+                                {
+                                    exerciseName = Exercises.Find(x => x.ExerciseId == startingWeight.ExerciseId).ExerciseName,
+                                    weight = startingWeight.Weight,
+                                    isNew = true,
+                                    isSuccesful = true,
+                                    workoutLoad = "light"
+                                };
+                            NextWorkout.Add(newModel);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var startingWeight in WorkoutExercises)
+                        {
+                            NextWorkoutViewModel newModel = new NextWorkoutViewModel
+                                {
+                                    exerciseName = Exercises.Find(x => x.ExerciseId == startingWeight.ExerciseId).ExerciseName,
+                                    weight = startingWeight.ActualWeight,
+                                    isNew = false,
+                                    isSuccesful = startingWeight.IsSuccessful,
+                                    workoutLoad = "light"
+                                };
+                            NextWorkout.Add(newModel);
+                        }
+                    }
+                    break;
+                case "heavy":
+                    foreach (var startingWeight in WorkoutExercises)
+                    {
+                        NextWorkoutViewModel newModel = new NextWorkoutViewModel
+                            {
+                                exerciseName = Exercises.Find(x => x.ExerciseId == startingWeight.ExerciseId).ExerciseName,
+                                weight = startingWeight.ActualWeight,
+                                isNew = false,
+                                isSuccesful = startingWeight.IsSuccessful,
+                                workoutLoad = "medium"
+                            };
+                        NextWorkout.Add(newModel);
+                    }
+                    break;
+            }
+            nextWorkoutWeights = madCowWorkoutCalculator.NextWorkoutWeights(NextWorkout);
+        }
     }
 
     private async Task StartWorkout() 
     {
         bool newWorkout = false;
+        string url = "";
         DateTime date = DateTime.Now;
-        Workout currentWorkout = new Workout();
+        // Workout currentWorkout = new Workout();
         Workout? lastWorkout = await appDbContext.Workouts.Where(x => x.UserId == userId.Value).OrderByDescending(x => x.Date).FirstOrDefaultAsync();
 
-        if (Workouts.Any(workout => workout.Date > DateTime.Now.AddDays(-10)) && NextWorkout.Any(x => x.isNew == false))
+        if (Workouts.Any(x => x.Date > DateTime.Now.AddDays(-10)))
         {
-            if (currentWorkout.Date == lastWorkout?.Date)
+            url = "/active-Workout";
+
+            if (date.Date != lastWorkout?.Date)
             {
-                lastWorkout.Date = date;                
-            }
-            else
-            {
+                Workout workout = new Workout();
                 switch (lastWorkout.Load)
                 {
                     case "light":
-                        currentWorkout.UserId = userId.Value;
-                        currentWorkout.Date = date.Date;
-
+                        workout.UserId = userId.Value;
+                        workout.Date = date.Date;
+                        workout.Load = "heavy";
                         break;
                     case "medium":
+                        workout.UserId = userId.Value;
+                        workout.Date = date.Date;
+                        workout.Load = "light";
                         break;
                     case "heavy":
+                        workout.UserId = userId.Value;
+                        workout.Date = date.Date;
+                        workout.Load = "medium";
                         break;
                 }
+                appDbContext.Workouts.Add(workout);
             }
-
-            navigationManager.NavigateTo("/active-workout");
         }
         else
         {
             newWorkout = true;
 
-            string url = $"/active-workout?isNew={newWorkout}";
+            url = $"/active-workout?isNew={newWorkout}";
 
-            currentWorkout.UserId = userId.Value;
-            currentWorkout.Date = date.Date;
-            currentWorkout.Load = "medium";
+            Workout workout = new Workout
+                {
+                    UserId = userId.Value,
+                    Date = date.Date,
+                    Load = "medium"
+                };
 
-            
 
+            appDbContext.Workouts.Add(workout);
             navigationManager.NavigateTo(url);
         }
+        try
+        {
+            await appDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+        navigationManager.NavigateTo(url);
 
     }
     // TODO: Implement Deload
