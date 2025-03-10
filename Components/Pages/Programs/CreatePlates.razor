@@ -1,4 +1,5 @@
-﻿@page "/create-plates"
+﻿// Seite zur Konfiguration der Gewichtsscheiben des Benutzers
+@page "/create-plates"
 @using MCPowerlifting.Models.Entities
 @using MCPowerlifting.Models.ViewModels
 @rendermode InteractiveServer
@@ -6,11 +7,14 @@
 @inject AppDbContext appDbContext
 @inject NavigationManager navigationManager
 
+// Hauptkarte für die Plattenauswahl
 <div class="card m-4">
     <div class="card m-4" style="max-width:50vW;">
         <div class="card-header d-flex justify-content-center">
             <h2>What kind of plates do you own?</h2>
         </div>
+        
+        <!-- Checkbox-Gruppe zur Auswahl der verfügbaren Plattengewichte -->
         <div class="card-body d-flex justify-content-center">
             <div class="btn-group" role="group" aria-label="Basic checkbox toggle button group">
                 @foreach (var checkPair in Checks)
@@ -20,26 +24,29 @@
                 }
             </div>
         </div>
+        
+        <!-- Dynamische Anzeige von Eingabefeldern für die Anzahl der ausgewählten Platten -->
         <div class="card-body d-flex">
             @foreach (var checkPair in Checks)
             {
                 if(checkPair.Value == true)
                 {
                     <div style="max-width:10rem; margin-right: 10px;">
-                        @* Added margin for spacing *@
                         <label>@checkPair.Key.Substring(5)</label>
                         <input type="number" class="form-control" placeholder="0" aria-label="0" @bind-value="@PlateCounts[checkPair.Key]" />
                         <span class="input-group-text" id="@("span_" + checkPair.Key)">stk</span>
                     </div>
                 }
-
             }
         </div>
     </div>
+    
+    <!-- Button zum Öffnen des Bestätigungs-Modals -->
     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#PlateValidationModal">
         Save Plates
     </button>
-    <!-- Modal -->
+    
+    <!-- Bestätigungs-Modal mit Zusammenfassung der ausgewählten Platten -->
     <div class="modal fade" id="PlateValidationModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -67,16 +74,18 @@
             </div>
         </div>
     </div>
-
 </div>
 
 @code {
-
+    // ViewModel für die Kommunikation mit dem Server
     [SupplyParameterFromForm]
     public PlateViewModel Model { get; set; } = new PlateViewModel();
 
+    // Fehlermeldung bei Validierungsproblemen
     private string? errorMessage;
 
+    // Dictionary zur Verwaltung des Auswahlzustands jeder Plattenart
+    // Key: "Check" + Gewicht, Value: Ist ausgewählt (true/false)
     public Dictionary<string, bool> Checks { get; set; } = new Dictionary<string, bool>
     {
         {"Check0,25", false},
@@ -91,6 +100,8 @@
         {"Check25,00", false}
     };
 
+    // Dictionary zur Speicherung der Anzahl jeder ausgewählten Plattenart
+    // Key: "Check" + Gewicht, Value: Anzahl der Platten
     public Dictionary<string, int> PlateCounts { get; set; } = new Dictionary<string, int>
     {
         {"Check0,25", 0},
@@ -105,43 +116,53 @@
         {"Check25,00", 0}
     };
 
+    // Speichert die ausgewählten Platten in der Datenbank
     private async Task CreatingPlateSave()
     {
+        // Benutzer-ID abrufen
         var userId = UserService.GetCurrentUserId();
 
+        // Überprüfen, ob bereits eine Equipment-Konfiguration existiert (Langhantel)
         Equipment? equipment = appDbContext.Equipments.FirstOrDefault(e => e.UserId == userId);
 
+        // Wenn keine Langhantel konfiguriert ist, zurück zur Programmkonfiguration
         if(equipment == null)
         {
             errorMessage = "Please enter a Barweight first.";
             navigationManager.NavigateTo("/create-program");
         }
 
+        // Setze die Equipment-ID im Modell
         Model.EquipmentId = equipment.EquipmentId;
 
+        // Erstelle für jede ausgewählte Plattenart einen Datenbankeintrag
         foreach (var p in PlateCounts)
         {
             if (p.Value > 0)
             {
+                // Plattenobjekt für Datenbank erstellen
                 Plate plate = new Plate
                     {
                         EquipmentId = Model.EquipmentId,
-                        PlateWeight = Convert.ToDouble(p.Key.Substring(5)),
-                        PlateCount = p.Value
+                        PlateWeight = Convert.ToDouble(p.Key.Substring(5)),  // Extrahiere Gewicht aus dem Key
+                        PlateCount = p.Value  // Anzahl der Platten
                     };
                 appDbContext.Plates.Add(plate);
             }
         }
+        
+        // Speichern der Änderungen in der Datenbank
         try
         {
             await appDbContext.SaveChangesAsync();
         }
         catch(Exception ex)
         {
+            // Fehlerbehandlung sollte hier implementiert werden
             return;
         }
 
+        // Weiterleitung zur Eingabe der Anfangsgewichte
         navigationManager.NavigateTo("/starting-weights");
     }
-
 }

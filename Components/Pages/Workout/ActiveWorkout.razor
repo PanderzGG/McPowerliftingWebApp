@@ -17,8 +17,10 @@
             <h1>Active Workout</h1>
         </CardHeader>
         <CardBody Display="Display.Flex" Class="justify-content-center">
+            @* Zustand 1: Workout noch nicht gestartet - zeigt geplante Übungen und Gewichte *@
             @if (!isActive)
             {
+                // Listen-Darstellung der geplanten Übungen mit Gewichten
                 <ListGroup Display="Display.Flex">
                     @foreach (var exercise in activeWeights)
                     {
@@ -35,8 +37,10 @@
                     }
                 </ListGroup>
             }
+            @* Zustand 2: Workout gestartet, aber keine spezifische Übung ausgewählt *@
             else if (isActive && !inExercise)
             {
+                // Anzeige der Gesamtzeit und aller Übungen mit Fortschritt
                 <CardBody>
                     <p>@overallFormattedTime</p>
                     @foreach (var exercise in activeWeights)
@@ -81,8 +85,10 @@
                     }
                 </CardBody>
             }
+            @* Zustand 3: Eine spezifische Übung ist aktiv *@
             @if (isActive && inExercise)
             {
+                // Übungsname und Aufwärm-/Arbeitssätze
                 <Div Display="Display.Flex" Class="flex-column">
                     <Div Display="Display.Flex" Class="justify-content-center">
                         <h1>@currentExercise</h1>
@@ -259,40 +265,50 @@
 
 
 @code {
+    // ViewModel für die aktive Workout-Sitzung
     private ActiveWorkoutViewModel Model = new ActiveWorkoutViewModel();
+    
+    // Helper für die Berechnung der MadCow-spezifischen Gewichte
     private MadCowWorkoutCalculator madCowWorkoutCalculator = new MadCowWorkoutCalculator();
 
+    // Datenstruktur für die aktive Übung
     private ActiveExercise activeExercise = new ActiveExercise();
 
+    // Listen für den Zugriff auf Datenbank-Entitäten
     private List<Exercise> exercises = new List<Exercise>();
     private List<Workout> workouts = new List<Workout>();
     private List<WorkoutExercise>? workoutExercises = new List<WorkoutExercise>();
-
+    
+    // Liste für bereits absolvierte Übungen in der aktuellen Sitzung
     private List<string> doneExercises = new List<string>();
 
+    // Liste für Aufwärm- und Arbeitssätze der aktuellen Übung
     private List<ActiveExercise> setList = new List<ActiveExercise>();
 
+    // Aktuelle Gewichte für alle Übungen dieser Trainingseinheit
     private Dictionary<string, double> activeWeights = new Dictionary<string, double>();
 
+    // Timer für die Trainingszeit
     private Timer overallTimer = new Timer();
     private int overallCurrentTime = 0;
     private string overallFormattedTime => TimeSpan.FromSeconds(overallCurrentTime).ToString(@"hh\:mm\:ss");
     //Todo: Implementierung auswahl verschiedener Workouts
     // private List<Program> programs = new List<Program>();
     // InDev hilfe, da nur ein program
+    
+    // Aktuelle Trainingsparameter
     private string aktivesProgram = "madcow 5x5";
     private string currentExercise;
 
+    // Statusflags zur Steuerung der UI-Ansicht
     private bool isActive = false;
     private bool inExercise = false;
     private bool warmUpDone = false;
 
-
+    // Flag zur Identifizierung eines neuen Workout-Zyklus
     private bool isNew = false;
 
-    // private bool isSuccessChecked { get; set; } = false;
-    // private bool isFailedChecked { get; set; } = false;
-
+    // Initialisierung des Timers beim Erstladen der Komponente
     protected override void OnInitialized()
     {
         overallTimer = new Timer(1000);
@@ -300,37 +316,42 @@
         overallTimer.AutoReset = true;
     }
 
+    // Timer-Callback: Aktualisiert die Anzeige jede Sekunde
     private void OnTimerElapsed(object sender, ElapsedEventArgs e)
     {
         overallCurrentTime++;
         InvokeAsync(() => StateHasChanged());
     }
 
+    // Lädt alle notwendigen Daten beim Start der Komponente
     override protected async Task OnInitializedAsync()
     {
+        // Benutzer-ID laden und im Model speichern
         var userId = Userservice.GetCurrentUserId();
         if(userId.Value != null)
         {
             Model.UserId = userId.Value;
         }
-        // Abrufen der Query-Parameter aus der URL
+        
+        // Query-Parameter aus der URL auslesen (für isNew-Parameter)
         var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
         var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
+        // Grundlegende Daten aus der Datenbank laden
         exercises = await appDbContext.Exercises.ToListAsync();
         workoutExercises = await appDbContext.workoutExercises.ToListAsync();
-
         workouts = await appDbContext.Workouts.Where(x => x.UserId == userId).ToListAsync();
         workouts = workouts.OrderByDescending(x => x.Date).ToList();
 
-        // TODO DELOAD CHECKEN UND SPEICHERN
-
+        // Entscheidungslogik: Neues Workout oder Fortsetzung eines bestehenden Zyklus
         if (queryParameters.TryGetValue("isNew", out var isNewParam))
         {
+            // Fall: Neues Workout - basierend auf Anfangsgewichten
             isNew = bool.Parse(isNewParam);
 
             if(isNew != null && true)
             {
+                // Lädt Anfangsgewichte des Benutzers und berechnet die Trainingsgewichte
                 List<Starting_Weights> startingWeights = new List<Starting_Weights>();
                 startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
 
@@ -341,17 +362,20 @@
         }
         else
         {
+            // Fall: Fortsetzung des Zyklus - basierend auf vorherigen Workouts
             int? lastWorkoutId = workouts.FirstOrDefault(x => x.Date.Date != DateTime.Now.Date)?.WorkoutId;
 
 
             if (lastWorkoutId != null)
             {
+                // Vorbereitung der Datenstrukturen
                 List<WorkoutExercise> lastWorkoutExercises = new List<WorkoutExercise>();
                 List<ActiveExercise> lastExercises = new List<ActiveExercise>();
 
+                // Bestimme den Load-Typ des letzten Workouts
                 string load = workouts.FirstOrDefault(x => x.WorkoutId == lastWorkoutId).Load;
 
-
+                // MadCow-Rotation des Load-Typs basierend auf dem letzten Workout
                 switch(load.ToLower())
                 {
                     case "light":
@@ -365,11 +389,14 @@
                         break;
                 }
 
+                // Suche nach einem früheren Workout mit dem gleichen Load-Typ
                 if (workouts.Any(x => x.Load == Model.WorkoutLoad && x.Date.Date != DateTime.Now.Date))
                 {
+                    // Finde das letzte Workout mit dem aktuellen Load-Typ
                     lastWorkoutId = workouts.FirstOrDefault(x => x.Load == Model.WorkoutLoad && x.Date.Date != DateTime.Now.Date).WorkoutId;
                     lastWorkoutExercises = workoutExercises.Where(x => x.WorkoutId == lastWorkoutId).ToList();
 
+                    // Konvertiere die WorkoutExercise-Einträge in ActiveExercise-Objekte
                     foreach (var exercise in lastWorkoutExercises)
                     {
 
@@ -381,11 +408,12 @@
                                 FailInRow = exercise.FailureInRow
                             });
                     }
-
+                    // Berechne aktuelle Gewichte basierend auf vorherigen Gewichten
                     activeWeights = madCowWorkoutCalculator.CalculateFromPreviousWeight(lastExercises);
                 }
                 else
                 {
+                    // Fallback: Wenn kein passendes früheres Workout gefunden wurde, verwende Anfangsgewichte
                     string startingLoad = Model.WorkoutLoad;
                     List<Starting_Weights>  startingWeights =new List<Starting_Weights>();
                     startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
@@ -396,29 +424,34 @@
         }
     }
 
+    // Startet die Trainingseinheit und aktiviert den Timer
     private void ProgramStart()
     {
         isActive = true;
         StartTimer();
     }
 
+    // Beginnt eine spezifische Übung und generiert die Aufwärm- und Arbeitssätze
     private void StartExercise(string exerciseName)
     {
         inExercise = true;
         warmUpDone = false;
         currentExercise = exerciseName;
-
+        
+        // Speichere das Maximalgewicht für diese Übung und generiere die Satzliste
         double maxWeight = activeWeights[exerciseName];
         Model.Weight = maxWeight;
-
         setList = madCowWorkoutCalculator.CalculateExercise(exerciseName, maxWeight, Model.WorkoutLoad);
 
     }
 
+    // Markiert einen Aufwärmsatz als erledigt und prüft, ob alle Aufwärmsätze abgeschlossen sind
     private void WarmUpSetDone(ActiveExercise set)
     {
         int lastSet = setList.Where(x => x.SetType == "warmup").Count();
         set.IsSuccessful = true;
+        
+        // Wenn der letzte Aufwärmsatz abgeschlossen ist, wechsle zu Arbeitssätzen
         if(set.SetNumber == lastSet)
         {
             warmUpDone = true;
@@ -426,6 +459,7 @@
         StateHasChanged();
     }
 
+    // Markiert einen Arbeitssatz als erfolgreich oder nicht erfolgreich
     private void WorkingSetDone(ActiveExercise set, bool isSuccess)
     {
         int lastSet = setList.Where(x => x.SetType == "working").Count();
@@ -434,24 +468,28 @@
 
     }
     
-
+    // Schließt die aktuelle Übung ab und speichert die Ergebnisse in der Datenbank
     private async Task FinishExercise()
     {
+        // Bestimme, ob die Übung erfolgreich war (alle Sätze erfolgreich)
         bool success;
         int failureInRow;
         int exerciseId;
         int workoutId = workouts.First().WorkoutId;
         string exercise = setList.First().ExerciseName;
 
+        // Eine Übung gilt als erfolgreich, wenn alle Sätze erfolgreich waren
         success = setList.All(x => x.IsSuccessful == true);        
+
+        // Finde die Exercise-ID für die aktuelle Übung
         exerciseId = exercises.FirstOrDefault(x => x.ExerciseName == exercise).ExerciseId;
         Model.ExerciseId = exerciseId;
         Model.WorkoutId = workoutId;
 
-
-
+        // Speichere die Übungsergebnisse in der Datenbank
         if(success)
         {
+            // Bei Erfolg: Setze FailureInRow zurück auf 0
             WorkoutExercise workoutExercise = new WorkoutExercise
             {
                     WorkoutId = Model.WorkoutId,
@@ -465,6 +503,7 @@
         }
         else
         {
+            // Bei Misserfolg: Erhöhe den FailureInRow-Zähler
             if(workoutExercises.Count() != 0)
             {
                 failureInRow = workoutExercises.FirstOrDefault(x => x.ExerciseId == Model.ExerciseId).FailureInRow;
@@ -486,6 +525,8 @@
                 };
             appDbContext.workoutExercises.Add(workoutExercise);
         }
+        
+        // Speichere die Änderungen in der Datenbank
         try
         {
             await appDbContext.SaveChangesAsync();
@@ -495,17 +536,20 @@
             Console.WriteLine(e);
             throw;
         }
+        
+        // Zurück zur Übungsauswahl und markiere diese Übung als erledigt
         inExercise = false;
         doneExercises.Add(exercise);
         StateHasChanged();
     }
 
-
+    // Bricht die aktuelle Übung ab und kehrt zur Übungsauswahl zurück
     private void AbortExercise()
     {
         inExercise = false;
     }
 
+    // Bricht das gesamte Workout ab und löscht den heutigen Workout-Eintrag
     private async Task AbortWorkout()
     {
         var workout = appDbContext.Workouts.FirstOrDefault(x => x.UserId == Model.UserId && x.Date.Date == DateTime.Now.Date);
@@ -517,19 +561,21 @@
         navigationManager.NavigateTo("/");
     }
 
+    // Setzt den aktiven Workout-Zustand zurück, aber löscht keinen Datenbankeinträge
     private void AbortCurrent()
     {
         isActive = false;
         ResetTimer();
     }
 
+    // Schließt das Workout ab und kehrt zur Startseite zurück
     private void FinishWorkout()
     {
         navigationManager.NavigateTo("/");
         ResetTimer();
     }
     
-
+    // Timer-Steuerungsfunktionen
     private void StartTimer() => overallTimer.Start();
     private void StopTimer() => overallTimer.Stop();
     private void ResetTimer()
