@@ -196,8 +196,8 @@
                                         {
                                             <CardFooter>
                                                 <Buttons>
-                                                    <Button Color="Color.Success" name="@($"success-{set.SetNumber}")" Clicked="() => WorkingSetDone(set, true)">Success</Button>
-                                                    <Button Color="Color.Danger" name="@($"failed-{set.SetNumber}")" Clicked="() => WorkingSetDone(set, false)">Failed</Button>
+                                                    <Button Color="Color.Success" name="@($"success-{set.SetNumber}")" Clicked="() => {WorkingSetDone(set, true);}">Success</Button>
+                                                    <Button Color="Color.Danger" name="@($"failed-{set.SetNumber}")" Clicked="() => {WorkingSetDone(set, false);}">Failed</Button>
                                                 </Buttons>
                                             </CardFooter>
                                         }
@@ -267,7 +267,7 @@
 @code {
     // ViewModel für die aktive Workout-Sitzung
     private ActiveWorkoutViewModel Model = new ActiveWorkoutViewModel();
-    
+
     // Helper für die Berechnung der MadCow-spezifischen Gewichte
     private MadCowWorkoutCalculator madCowWorkoutCalculator = new MadCowWorkoutCalculator();
 
@@ -278,7 +278,7 @@
     private List<Exercise> exercises = new List<Exercise>();
     private List<Workout> workouts = new List<Workout>();
     private List<WorkoutExercise>? workoutExercises = new List<WorkoutExercise>();
-    
+
     // Liste für bereits absolvierte Übungen in der aktuellen Sitzung
     private List<string> doneExercises = new List<string>();
 
@@ -290,12 +290,21 @@
 
     // Timer für die Trainingszeit
     private Timer overallTimer = new Timer();
+    private Timer pauseTimer = new Timer();
     private int overallCurrentTime = 0;
+    private int pauseCurrentTime = 0;
+    private string pauseFormattedTime => TimeSpan.FromSeconds(pauseCurrentTime).ToString(@":mm\:ss");
     private string overallFormattedTime => TimeSpan.FromSeconds(overallCurrentTime).ToString(@"hh\:mm\:ss");
-    //Todo: Implementierung auswahl verschiedener Workouts
-    // private List<Program> programs = new List<Program>();
-    // InDev hilfe, da nur ein program
-    
+
+
+    /*
+    * 
+    * Todo: Implementierung auswahl verschiedener Workouts
+    * private List<Program> programs = new List<Program>();
+    * InDev hilfe, da nur ein program
+    * 
+    */
+
     // Aktuelle Trainingsparameter
     private string aktivesProgram = "madcow 5x5";
     private string currentExercise;
@@ -312,11 +321,22 @@
     protected override void OnInitialized()
     {
         overallTimer = new Timer(1000);
+        pauseTimer = new Timer(1000);
+
         overallTimer.Elapsed += OnTimerElapsed;
         overallTimer.AutoReset = true;
+
+        pauseTimer.Elapsed += OnPauseTimerElapsed;
+        pauseTimer.AutoReset = true;
     }
 
     // Timer-Callback: Aktualisiert die Anzeige jede Sekunde
+    private void OnPauseTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        pauseCurrentTime++;
+        InvokeAsync(() => StateHasChanged());
+    }
+
     private void OnTimerElapsed(object sender, ElapsedEventArgs e)
     {
         overallCurrentTime++;
@@ -332,7 +352,7 @@
         {
             Model.UserId = userId.Value;
         }
-        
+
         // Query-Parameter aus der URL auslesen (für isNew-Parameter)
         var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
         var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
@@ -372,6 +392,11 @@
                 List<WorkoutExercise> lastWorkoutExercises = new List<WorkoutExercise>();
                 List<ActiveExercise> lastExercises = new List<ActiveExercise>();
 
+                List<ActiveExercise> lastWorkingWeights = new List<ActiveExercise>();
+                List<ActiveExercise> tempWorkingWeights = new List<ActiveExercise>();
+                List<WorkoutExercise> TESTLIST = new List<WorkoutExercise>();
+                List<int> workoutIds = new List<int>();
+
                 // Bestimme den Load-Typ des letzten Workouts
                 string load = workouts.FirstOrDefault(x => x.WorkoutId == lastWorkoutId).Load;
 
@@ -396,15 +421,46 @@
                     lastWorkoutId = workouts.FirstOrDefault(x => x.Load == Model.WorkoutLoad && x.Date.Date != DateTime.Now.Date).WorkoutId;
                     lastWorkoutExercises = workoutExercises.Where(x => x.WorkoutId == lastWorkoutId).ToList();
 
+                    // Finde aktuelle gewichte
+
+                    foreach(var workId in workouts)
+                    {
+                        workoutIds.Add(workId.WorkoutId);
+                    }
+
+                    foreach (var id in workoutIds)
+                    {
+                        TESTLIST = workoutExercises.Where(x => x.WorkoutId == id).ToList();
+
+                        foreach(var exercise in TESTLIST)
+                        {
+                            lastWorkingWeights.Add(new ActiveExercise
+                            {
+                                ExerciseName = exercise.Exercise.ExerciseName,
+                                SetWeight = exercise.ActualWeight
+                            });
+                        }
+
+                    }
+
                     // Konvertiere die WorkoutExercise-Einträge in ActiveExercise-Objekte
                     foreach (var exercise in lastWorkoutExercises)
                     {
+                        string name = exercise.Exercise.ExerciseName;
+                        
+                        tempWorkingWeights = lastWorkingWeights.Where(x => x.ExerciseName == name).ToList();
+                        double lastWorkingWeight = 0;
+
+                        if(lastWorkingWeights != null)
+                        {
+                          lastWorkingWeight = tempWorkingWeights.Max(x => x.SetWeight);
+                        }
 
                         lastExercises.Add(new ActiveExercise
                             {
                                 ExerciseName = exercise.Exercise.ExerciseName,
                                 Load = Model.WorkoutLoad,
-                                SetWeight = exercise.ActualWeight,
+                                SetWeight = lastWorkingWeight,
                                 FailInRow = exercise.FailureInRow
                             });
                     }
@@ -428,7 +484,7 @@
     private void ProgramStart()
     {
         isActive = true;
-        StartTimer();
+        OverallStartTimer();
     }
 
     // Beginnt eine spezifische Übung und generiert die Aufwärm- und Arbeitssätze
@@ -565,20 +621,21 @@
     private void AbortCurrent()
     {
         isActive = false;
-        ResetTimer();
+        OverallResetTimer();
     }
 
     // Schließt das Workout ab und kehrt zur Startseite zurück
     private void FinishWorkout()
     {
         navigationManager.NavigateTo("/");
-        ResetTimer();
+        OverallResetTimer();
     }
     
     // Timer-Steuerungsfunktionen
-    private void StartTimer() => overallTimer.Start();
-    private void StopTimer() => overallTimer.Stop();
-    private void ResetTimer()
+    private void OverallStartTimer() => overallTimer.Start();
+    private void OverallStopTimer() => overallTimer.Stop();
+    
+    private void OverallResetTimer()
     {
         overallTimer.Stop();
         overallCurrentTime = 0;
