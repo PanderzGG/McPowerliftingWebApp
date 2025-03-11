@@ -6,6 +6,8 @@
 @using MCPowerlifting.Helper
 @using MCPowerlifting.Models.Entities
 @using MCPowerlifting.Models.ViewModels
+@using BlazorColor = Blazorise.Color;
+
 
 @inject UserService Userservice
 @inject AppDbContext appDbContext
@@ -34,7 +36,7 @@
             }
             else
             {
-                <Alert Color="Color.Success" Visible>
+                <Alert Color="BlazorColor.Success" Visible>
                     <AlertMessage>Good job! Your Workout is done for the day. Come back next Time!</AlertMessage>
                 </Alert>
             }
@@ -44,7 +46,7 @@
             <CardFooter Display="Display.Flex" Class="justify-content-center">
                 <!-- Button trigger modal -->
 
-                <Button Color="Color.Primary" Clicked="@ShowModal" Style="width:20rem;">Start Workout</Button>
+                <Button Color="BlazorColor.Primary" Clicked="@ShowModal" Style="width:20rem;">Start Workout</Button>
             </CardFooter>
         }
 
@@ -63,8 +65,8 @@
             Do you want to start the workout now?
         </ModalBody>
         <ModalFooter>
-            <Button Color="Color.Secondary" Clicked="@HideModal" >Not yet</Button>
-            <Button Color="Color.Primary" Clicked="@HideModal" @onclick="StartWorkout">Start Workout</Button>
+            <Button Color="BlazorColor.Secondary" Clicked="@HideModal">Not yet</Button>
+            <Button Color="BlazorColor.Primary" Clicked="@HideModal" @onclick="StartWorkout">Start Workout</Button>
         </ModalFooter>
     </ModalContent>
 </Modal>
@@ -72,7 +74,7 @@
 @code{
     // ViewModel für die Übertragung von Daten zur nächsten Komponente
     private NextWorkoutViewModel Model = new NextWorkoutViewModel();
-    private ActiveExercise newExercise = new ActiveExercise();
+    
     // Helper für die Berechnung der Gewichte nach dem MadCow-Programm
     private MadCowWorkoutCalculator madCowWorkoutCalculator = new MadCowWorkoutCalculator();
     
@@ -81,7 +83,6 @@
     private List<WorkoutExercise>? WorkoutExercises { get; set; } = new List<WorkoutExercise>();
     private List<Starting_Weights> startingWeights { get; set; } = new List<Starting_Weights>();
     private List<NextWorkoutViewModel> NextWorkout { get; set; } = new List<NextWorkoutViewModel>();
-
 
     // Aktuelle Gewichte für das nächste Training
     private Dictionary<string, double> nextWorkoutWeights = new Dictionary<string, double>();

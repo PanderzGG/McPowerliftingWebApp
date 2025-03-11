@@ -1,5 +1,6 @@
 ﻿// Seite zur Erstellung und Konfiguration des Trainingsprogramms
 @page "/create-program"
+@attribute [Authorize(Roles = "user")]
 @* @layout CreateProgramLayout *@
 
 @rendermode InteractiveServer

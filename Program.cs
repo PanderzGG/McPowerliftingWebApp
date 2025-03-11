@@ -10,6 +10,8 @@ using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 
+using MudBlazor.Services;
+
 using System;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +22,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UserService>();
+
+builder.Services.AddMudServices();
 
 // Blazorise Service
 builder.Services

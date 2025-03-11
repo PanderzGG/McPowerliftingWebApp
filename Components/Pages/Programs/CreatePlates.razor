@@ -1,5 +1,7 @@
 ﻿// Seite zur Konfiguration der Gewichtsscheiben des Benutzers
 @page "/create-plates"
+@attribute [Authorize(Roles = "user")]
+
 @using MCPowerlifting.Models.Entities
 @using MCPowerlifting.Models.ViewModels
 @rendermode InteractiveServer
