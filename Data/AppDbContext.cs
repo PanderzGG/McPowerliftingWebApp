@@ -1,7 +1,7 @@
-﻿using MCPowerlifting.Models.Entities;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using MudCowV2.Models.Entities;
 
-namespace MCPowerlifting.Data
+namespace MudCowV2.Data
 {
     public class AppDbContext : DbContext
     {

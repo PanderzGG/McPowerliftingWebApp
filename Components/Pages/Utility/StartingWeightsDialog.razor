@@ -1,0 +1,54 @@
+@using MudBlazor
+@using MudBlazor.Services
+@using MudBlazor.Utilities
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-3" />
+            Möchten Sie diese Gewichte als Ihre Startgewichte speichern?
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudPaper Elevation="0" Class="pa-4">
+            <MudStack>
+                @foreach (var weight in Weights.OrderBy(w => w.Key))
+                {
+                    <div class="d-flex justify-space-between align-center">
+                        <MudText>@weight.Key</MudText>
+                        <MudText Color="Color.Primary" Class="ml-4">@weight.Value.ToString("F1") kg</MudText>
+                    </div>
+                    <MudDivider Class="my-2"/>
+                }
+            </MudStack>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                  Variant="Variant.Text" 
+                  StartIcon="@Icons.Material.Filled.Cancel">
+            Abbrechen
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                  OnClick="Submit" 
+                  Variant="Variant.Filled"
+                  StartIcon="@Icons.Material.Filled.Save">
+            Speichern
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Dictionary<string, double> Weights { get; set; } = new Dictionary<string, double>();
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+} 

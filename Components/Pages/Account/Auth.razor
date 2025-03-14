@@ -1,0 +1,16 @@
+﻿@page "/auth"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+<h3>Authentication Status</h3>
+
+@* Example of using the AuthorizeView component to display different content based on the user's authentication status: *@
+<AuthorizeView>
+    <NotAuthorized>
+        <p>Not logged in</p>
+    </NotAuthorized>
+    <Authorized>
+        <p>SUP MY FCKN GEEEEEEEEEEEEE</p>
+    </Authorized>
+</AuthorizeView>
+

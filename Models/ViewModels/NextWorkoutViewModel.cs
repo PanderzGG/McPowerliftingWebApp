@@ -1,4 +1,4 @@
-﻿namespace MCPowerlifting.Models.ViewModels
+﻿namespace MudCowV2.Models.ViewModels
 {
     public class NextWorkoutViewModel
     {

@@ -1,7 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
-namespace MCPowerlifting.Models.Entities
+namespace MudCowV2.Models.Entities
 {
     [Table("equipment")]
     public class Equipment
@@ -17,7 +17,7 @@ namespace MCPowerlifting.Models.Entities
 
         [Required]
         [Column("bar_weight")]
-        public float BarWeight { get; set; }
+        public double BarWeight { get; set; }
 
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }

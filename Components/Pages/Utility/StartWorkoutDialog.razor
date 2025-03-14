@@ -1,0 +1,41 @@
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="mr-3" />
+            Training Starten
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText>Möchten Sie das Training jetzt beginnen?</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            Stellen Sie sicher, dass Sie sich aufgewärmt haben und bereit sind.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                  Variant="Variant.Text"
+                  StartIcon="@Icons.Material.Filled.Close">
+            Noch nicht
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                  OnClick="Submit" 
+                  Variant="Variant.Filled"
+                  StartIcon="@Icons.Material.Filled.PlayArrow">
+            Training Starten
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+} 

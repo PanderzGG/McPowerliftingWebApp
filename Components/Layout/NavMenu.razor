@@ -1,44 +1,63 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">MCPowerlifting</a>
-    </div>
-</div>
+﻿@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-<AuthorizeView>
-    <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-        <nav class="flex-column">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Workout
-                </NavLink>
-            </div>
+<link href="https://use.fontawesome.com/releases/v5.14.0/css/all.css" rel="stylesheet">
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="/create-program">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Create Program
-                </NavLink>
-            </div>
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="#">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> History
-                </NavLink>
-            </div>
+<MudPaper Width="250px" Class="d-inline-flex py-3" Elevation="0">
+    <MudNavMenu Class="mud-width-full">
+        <MudText Typo="Typo.h6" Class="px-4">Menü</MudText>
+        <MudDivider Class="my-2"/>
+        
+        <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+            Startseite
+        </MudNavLink>
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="/progress">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Progress
-                </NavLink>
-            </div>
+        <MudNavLink Href="/Workout/next-workout" Icon="@Icons.Material.Filled.FitnessCenter">
+            Nächstes Training
+        </MudNavLink>
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="#">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> User
-                </NavLink>
-            </div>
+        <MudNavLink Href="/Progress/progress" Icon="@Icons.Material.Filled.Timeline">
+            Fortschritt
+        </MudNavLink>
 
+        <MudDivider Class="my-2"/>
+        
+        <MudNavGroup Title="Einstellungen" 
+                     Icon="@Icons.Material.Filled.Settings" 
+                     Expanded="false">
+            <MudNavLink Href="/starting-weights" 
+                       Icon="@Icons.Material.Filled.FitnessCenter">
+                Startgewichte
+            </MudNavLink>
             
-        </nav>
-    </div>
-</AuthorizeView>
+            <MudNavLink Href="/profile" 
+                       Icon="@Icons.Material.Filled.Person">
+                Profil
+            </MudNavLink>
+        </MudNavGroup>
+
+        <AuthorizeView Roles="admin">
+            <MudNavGroup Title="Administration" 
+                        Icon="@Icons.Material.Filled.AdminPanelSettings" 
+                        Expanded="false">
+                <MudNavLink Href="/create-program" 
+                           Icon="@Icons.Material.Filled.AddCircle">
+                    Programm Erstellen
+                </MudNavLink>
+                
+                <MudNavLink Href="/create-plates" 
+                           Icon="@Icons.Material.Filled.AddBox">
+                    Gewichtsscheiben
+                </MudNavLink>
+
+                <MudNavLink Href="/users" 
+                           Icon="@Icons.Material.Filled.Group">
+                    Benutzerverwaltung
+                </MudNavLink>
+            </MudNavGroup>
+        </AuthorizeView>
+    </MudNavMenu>
+</MudPaper>
+
+

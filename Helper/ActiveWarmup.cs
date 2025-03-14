@@ -1,4 +1,4 @@
-﻿namespace MCPowerlifting.Helper
+﻿namespace MudCowV2.Helper
 {
     public class ActiveWarmup
     {

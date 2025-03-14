@@ -1,366 +1,87 @@
 ﻿@page "/"
-@attribute [Authorize(Roles = "user")]
+@using Microsoft.AspNetCore.Authorization
 
-@rendermode InteractiveServer
+@attribute [Authorize]
 
-@using MCPowerlifting.Helper
-@using MCPowerlifting.Models.Entities
-@using MCPowerlifting.Models.ViewModels
-@using BlazorColor = Blazorise.Color;
+<PageTitle>MudCow - Dein Krafttraining Begleiter</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudGrid>
+        <MudItem xs="12" Class="d-flex justify-center">
+            <MudPaper Elevation="3" Class="pa-8 rounded-lg" Style="max-width: 800px;">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Align="Align.Center" Class="mb-4">Willkommen bei MudCow V2</MudText>
+                <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-6">Dein persönlicher Begleiter für effektives Krafttraining</MudText>
+                
+                <MudDivider Class="my-6" />
+                
+                <MudGrid>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="0">
+                            <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Color="Color.Primary" Size="Size.Large" Class="mb-3" />
+                            <MudText Typo="Typo.h6" Align="Align.Center">Trainingsplan</MudText>
+                            <MudText Typo="Typo.body2" Align="Align.Center">Verfolge deinen strukturierten Trainingsplan und erreiche deine Ziele</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="0">
+                            <MudIcon Icon="@Icons.Material.Filled.ShowChart" Color="Color.Primary" Size="Size.Large" Class="mb-3" />
+                            <MudText Typo="Typo.h6" Align="Align.Center">Fortschritt</MudText>
+                            <MudText Typo="Typo.body2" Align="Align.Center">Beobachte deine Entwicklung und visualisiere deine Erfolge</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="0">
+                            <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Primary" Size="Size.Large" Class="mb-3" />
+                            <MudText Typo="Typo.h6" Align="Align.Center">Anpassbar</MudText>
+                            <MudText Typo="Typo.body2" Align="Align.Center">Passe dein Training an deine individuellen Bedürfnisse an</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+                
+                <MudDivider Class="my-6" />
+                
+                <MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">Starte dein Training jetzt</MudText>
+                <div class="d-flex justify-center">
+                    <MudButton Variant="Variant.Filled" 
+                              Color="Color.Primary" 
+                              Size="Size.Large"
+                              StartIcon="@Icons.Material.Filled.PlayArrow"
+                              Href="/Workout/next-workout"
+                              Class="px-8">
+                        Nächstes Training starten
+                    </MudButton>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
 
-@inject UserService Userservice
-@inject AppDbContext appDbContext
-@inject NavigationManager navigationManager
-
-<PageTitle>Next Workout</PageTitle>
-
-<Div Class="d-grid">
-    <Card Class="col-4 mx-auto">
-        <CardHeader>
-            <h2 Class="text-center">Todays Workout</h2>
-        </CardHeader>
-        <CardBody>
-            @if(!doneToday)
-            {
-                <ListGroup>
-                    @foreach (var exercise in nextWorkoutWeights)
-                    {
-                        // Gewicht wird berechnet und auf halbe Kilos gerundet
-                        double weight = exercise.Value * 2;
-                        double roundedWeight = Math.Round(weight, MidpointRounding.AwayFromZero) / 2;
-
-                        <ListGroupItem>@exercise.Key: @roundedWeight Kg</ListGroupItem>
-                    }
-                </ListGroup>
-            }
-            else
-            {
-                <Alert Color="BlazorColor.Success" Visible>
-                    <AlertMessage>Good job! Your Workout is done for the day. Come back next Time!</AlertMessage>
-                </Alert>
-            }
-        </CardBody>
-        @if (!doneToday)
-        {
-            <CardFooter Display="Display.Flex" Class="justify-content-center">
-                <!-- Button trigger modal -->
-
-                <Button Color="BlazorColor.Primary" Clicked="@ShowModal" Style="width:20rem;">Start Workout</Button>
-            </CardFooter>
-        }
-
-    </Card>
-</Div>
-
-
-<!--Modal-->
-<Modal @ref="StartWorkoutModal">
-    <ModalContent Centered>
-        <ModalHeader>
-            <ModalTitle>Start workout?</ModalTitle>
-            <CloseButton />
-        </ModalHeader>
-        <ModalBody>
-            Do you want to start the workout now?
-        </ModalBody>
-        <ModalFooter>
-            <Button Color="BlazorColor.Secondary" Clicked="@HideModal">Not yet</Button>
-            <Button Color="BlazorColor.Primary" Clicked="@HideModal" @onclick="StartWorkout">Start Workout</Button>
-        </ModalFooter>
-    </ModalContent>
-</Modal>
-
-@code{
-    // ViewModel für die Übertragung von Daten zur nächsten Komponente
-    private NextWorkoutViewModel Model = new NextWorkoutViewModel();
-    
-    // Helper für die Berechnung der Gewichte nach dem MadCow-Programm
-    private MadCowWorkoutCalculator madCowWorkoutCalculator = new MadCowWorkoutCalculator();
-    
-    // Datenstrukturen für die Verwaltung der Trainingshistorie
-    private List<Workout> Workouts { get; set; } = new List<Workout>();
-    private List<WorkoutExercise>? WorkoutExercises { get; set; } = new List<WorkoutExercise>();
-    private List<Starting_Weights> startingWeights { get; set; } = new List<Starting_Weights>();
-    private List<NextWorkoutViewModel> NextWorkout { get; set; } = new List<NextWorkoutViewModel>();
-
-    // Aktuelle Gewichte für das nächste Training
-    private Dictionary<string, double> nextWorkoutWeights = new Dictionary<string, double>();
-
-
-    private int? userId;
-    private bool doneToday = false;
-
-    // Initialisierung der Komponente beim ersten Laden
-    override protected async Task OnInitializedAsync()
-    {
-        await LoadData();
-    }
-
-    // Lädt alle relevanten Daten für die Workout-Planung
-    protected async Task LoadData()
-    {
-        bool hasWorkout = false;
-        bool hasStartingWeights = false;
-        int lastWorkoutId = 0;
-
-        // Lade alle Übungen aus der Datenbank
-        List<Exercise> Exercises = new List<Exercise>();
-        Exercises = await appDbContext.Exercises.ToListAsync();
-
-        // Lade Benutzer-spezifische Daten
-        userId = Userservice.GetCurrentUserId();
-        Workouts = await appDbContext.Workouts.Where(workout => workout.UserId == userId.Value).ToListAsync();
-
-        // Überprüfe, ob es bereits Workouts gibt und ob heute schon trainiert wurde
-        if (Workouts.Count() != 0)
-        {
-            Workouts = Workouts.OrderByDescending(x => x.Date).ToList();
-            lastWorkoutId = Workouts.FirstOrDefault().WorkoutId;
-
-            if(Workouts.First().Date.Date == DateTime.Now.Date)
-            {
-                doneToday = true;
-            }
-
-        }
-
-        // Lade die Anfangsgewichte des Benutzers
-        startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
-
-        hasWorkout = Workouts.Any(x => x.UserId == userId.Value);
-        hasStartingWeights = startingWeights.Any(x => x.UserId == userId.Value);
-
-        // FALL 1: Erstes Workout - nutze Anfangsgewichte
-        if (!hasWorkout && hasStartingWeights)
-        {
-            // Erstelle für jede Übung einen Eintrag mit den Anfangsgewichten
-            foreach (var startingweight in startingWeights.Where(x => x.UserId == userId.Value))
-            {
-                NextWorkoutViewModel newModel = new NextWorkoutViewModel
-                    {
-                        exerciseName = Exercises.Find(x => x.ExerciseId == startingweight.ExerciseId).ExerciseName,
-                        weight = startingweight.Weight,
-                        isNew = true,
-                        isSuccesful = true,
-                        workoutLoad = "medium"
-                    };
-                NextWorkout.Add(newModel);
-            }
-            nextWorkoutWeights = madCowWorkoutCalculator.NextWorkoutWeights(NextWorkout);
-        }
-        // FALL 2: Folge-Workout - basierend auf vorherigen Workouts
-        else if (hasWorkout)
-        {
-            // Bestimme die Last des nächsten Workouts basierend auf dem letzten Workout
-            // (MadCow rotiert zwischen light, medium und heavy)
-            string lastLoad;
-            string newLoad = "";
-            bool lastNew;
-
-            lastLoad = Workouts.FirstOrDefault().Load;
-
-            // Bestimme die neue Last für das nächste Workout und lade relevante Übungen
-            switch (lastLoad)
-            {
-                case "light":
-                    WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "heavy" ).ToListAsync();
-                    newLoad = "heavy";
-                    break;
-                case "medium":
-                    WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "light").ToListAsync();
-                    newLoad = "light"; 
-                    break;
-                case "heavy":
-                    WorkoutExercises = await appDbContext.workoutExercises.Where(x => x.Workout.Load == "medium").ToListAsync();
-                    newLoad = "medium";
-                    break;
-            }
-            
-            // Wenn keine passenden WorkoutExercises gefunden wurden, nutze Anfangsgewichte
-            if(WorkoutExercises.Count() == 0)
-            {
-                foreach(var startingweight in startingWeights.Where(x => x.UserId == userId.Value))
-                {
-                    NextWorkoutViewModel newModel = new NextWorkoutViewModel
-                        {
-                            exerciseName = Exercises.Find(x => x.ExerciseId == startingweight.ExerciseId).ExerciseName,
-                            weight = startingweight.Weight,
-                            isNew = true,
-                            isSuccesful = true,
-                            workoutLoad = newLoad
-                        };
-                    NextWorkout.Add(newModel);
-                }
-            }
-            else
-            {
-                // Basierend auf dem letzten Load-Typ, erstelle die passenden Workout-Einträge
-                switch (lastLoad)
-                {
-                    case "light":
-                        // Logik für Wechsel von light zu heavy
-                        foreach (var startingWeight in WorkoutExercises)
-                        {
-                            NextWorkoutViewModel newModel = new NextWorkoutViewModel
-                                {
-                                    exerciseName = Exercises.Find(x => x.ExerciseId == startingWeight.ExerciseId).ExerciseName,
-                                    weight = startingWeight.ActualWeight,
-                                    isNew = false,
-                                    isSuccesful = startingWeight.IsSuccessful,
-                                    workoutLoad = newLoad
-                                };
-                            NextWorkout.Add(newModel);
-                        }
-                        break;
-                    case "medium":
-                        // Spezialfall: Wenn kein light-Workout existiert, nutze Anfangsgewichte
-                        if (!Workouts.Any(x => x.Load == "light"))
-                        {
-                            foreach (var startingWeight in startingWeights.Where(x => x.UserId == userId.Value))
-                            {
-                                NextWorkoutViewModel newModel = new NextWorkoutViewModel
-                                    {
-                                        exerciseName = Exercises.Find(x => x.ExerciseId == startingWeight.ExerciseId).ExerciseName,
-                                        weight = startingWeight.Weight,
-                                        isNew = true,
-                                        isSuccesful = true,
-                                        workoutLoad = newLoad
-                                    };
-                                NextWorkout.Add(newModel);
-                            }
-                        }
-                        else
-                        {
-                            // Ansonsten nutze die Gewichte aus dem letzten light-Workout
-                            foreach (var startingWeight in WorkoutExercises)
-                            {
-                                NextWorkoutViewModel newModel = new NextWorkoutViewModel
-                                    {
-                                        exerciseName = Exercises.Find(x => x.ExerciseId == startingWeight.ExerciseId).ExerciseName,
-                                        weight = startingWeight.ActualWeight,
-                                        isNew = false,
-                                        isSuccesful = startingWeight.IsSuccessful,
-                                        workoutLoad = newLoad
-                                    };
-                                NextWorkout.Add(newModel);
-                            }
-                        }
-                        break;
-                    case "heavy":
-                        // Logik für Wechsel von heavy zu medium
-                        foreach (var startingWeight in WorkoutExercises)
-                        {
-                            NextWorkoutViewModel newModel = new NextWorkoutViewModel
-                                {
-                                    exerciseName = Exercises.Find(x => x.ExerciseId == startingWeight.ExerciseId).ExerciseName,
-                                    weight = startingWeight.ActualWeight,
-                                    isNew = false,
-                                    isSuccesful = startingWeight.IsSuccessful,
-                                    workoutLoad = newLoad
-                                };
-                            NextWorkout.Add(newModel);
-                        }
-                        break;
-                }
-            }
-            // Berechne die finalen Gewichte für das nächste Workout
-            nextWorkoutWeights = madCowWorkoutCalculator.NextWorkoutWeights(NextWorkout);
-        }
-    }
-    
-    // Startet ein neues Workout basierend auf der Trainingshistorie
-    private async Task StartWorkout() 
-    {
-        bool newWorkout = false;
-        string url = "";
-        DateTime date = DateTime.Now;
-
-        Workout? lastWorkout = await appDbContext.Workouts.Where(x => x.UserId == userId.Value).OrderByDescending(x => x.Date).FirstOrDefaultAsync();
-
-        // Wenn es in den letzten 30 Tagen ein Workout gab, führe den normalen Workflow fort
-        if (Workouts.Any(x => x.Date > DateTime.Now.AddDays(-30)))
-        {
-            url = "/active-Workout";
-
-            // Erstelle ein neues Workout, wenn das letzte nicht von heute ist
-            if (date.Date != lastWorkout?.Date)
-            {
-                Workout workout = new Workout();
-                // Rotiere den Workout-Typ basierend auf dem letzten Workout
-                switch (lastWorkout.Load)
-                {
-                    case "light":
-                        workout.UserId = userId.Value;
-                        workout.Date = date.Date;
-                        workout.Load = "heavy";
-                        break;
-                    case "medium":
-                        workout.UserId = userId.Value;
-                        workout.Date = date.Date;
-                        workout.Load = "light";
-                        break;
-                    case "heavy":
-                        workout.UserId = userId.Value;
-                        workout.Date = date.Date;
-                        workout.Load = "medium";
-                        break;
-                }
-                appDbContext.Workouts.Add(workout);
-            }
-        }
-        else
-        {
-            // Falls kein Workout in den letzten 30 Tagen, starte mit einem neuen Workout
-            newWorkout = true;
-
-            url = $"/active-workout?isNew={newWorkout}";
-
-            Workout workout = new Workout
-                {
-                    UserId = userId.Value,
-                    Date = date.Date,
-                    Load = "medium"
-                };
-
-
-            appDbContext.Workouts.Add(workout);
-            navigationManager.NavigateTo(url);
-        }
-        // Speichere die Änderungen in der Datenbank und navigiere zur Workout-Seite
-        try
-        {
-            await appDbContext.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            // Fehlerbehandlung sollte hier erweitert werden
-            return;
-        }
-        navigationManager.NavigateTo(url);
-
-    }
-    
-    // Test-Navigation (kann später entfernt werden)
-    private void NavigateTest()
-    {
-        navigationManager.NavigateTo("/test");    
-    }
-
-    #region Modal
-    // reference to the modal component
-    // Referenz zur Modal-Komponente
-    private Modal StartWorkoutModal;
-    // Öffnet den Modal-Dialog
-    private Task ShowModal()
-    {
-        return StartWorkoutModal.Show();
-    }
-    // Schließt den Modal-Dialog
-    private Task HideModal()
-    {
-        return StartWorkoutModal.Hide();
-    }
-    #endregion
-
-}
+<MudPaper Class="pa-8 mt-8" Elevation="0">
+    <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Deine aktuellen Statistiken</MudText>
+    <MudGrid Justify="Justify.Center" Class="mt-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 rounded-lg">
+                <MudText Typo="Typo.h6" Align="Align.Center">Trainingseinheiten</MudText>
+                <MudText Typo="Typo.h3" Align="Align.Center" Color="Color.Primary">12</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 rounded-lg">
+                <MudText Typo="Typo.h6" Align="Align.Center">Gewichtserhöhungen</MudText>
+                <MudText Typo="Typo.h3" Align="Align.Center" Color="Color.Success">8</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 rounded-lg">
+                <MudText Typo="Typo.h6" Align="Align.Center">Bankdrücken Max</MudText>
+                <MudText Typo="Typo.h3" Align="Align.Center" Color="Color.Secondary">85 kg</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 rounded-lg">
+                <MudText Typo="Typo.h6" Align="Align.Center">Kniebeugen Max</MudText>
+                <MudText Typo="Typo.h3" Align="Align.Center" Color="Color.Secondary">120 kg</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudPaper>

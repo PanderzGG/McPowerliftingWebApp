@@ -1,34 +1,22 @@
 ﻿@page "/logout"
-@using Microsoft.AspNetCore.Authentication
-@inject NavigationManager navigationManager
-
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body flew-column">
-                <div class="text-center">
-                    <img src="img/loginIcon.png" alt="Logged out" style="max-height:5rem;" />
-                </div>
-                <div class="text-center mt-2">
-                    <span class="text-danger">Logged out</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+@using MudCowV2.Services.AuthServices
 
 
 @code {
-    [CascadingParameter]
-    public HttpContext HttpContext { get; set; }
+    [Inject] private NavigationManager NavigationManager { get; set; }
+    [Inject] private IAuthService AuthService { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
-        if (HttpContext.User.Identity.IsAuthenticated)
+        if (AuthService.IsLoggedIn)
         {
-            await HttpContext.SignOutAsync();
-            navigationManager.NavigateTo("/", true);
+            await AuthService.LogoutAsync();
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/", forceLoad: true);
         }
     }
+     
 }

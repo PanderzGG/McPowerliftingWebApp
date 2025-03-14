@@ -1,7 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
-namespace MCPowerlifting.Models.Entities
+namespace MudCowV2.Models.Entities
 {
     [Table("programs")]
     public class WorkoutProgram

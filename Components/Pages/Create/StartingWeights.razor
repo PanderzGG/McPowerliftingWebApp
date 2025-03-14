@@ -1,0 +1,162 @@
+﻿@page "/starting-weights"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using MudCowV2.Components
+@using MudCowV2.Components.Pages.Utility
+@using MudCowV2.Data
+@using MudCowV2.Models.Entities
+@using MudCowV2.Models.ViewModels
+@using MudCowV2.Services
+
+@inject UserService Userservice
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudCard Elevation="3">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h4" Color="Color.Primary">Anfangsgewichte festlegen</MudText>
+                <MudText Typo="Typo.subtitle1" Class="mt-1">Wählen Sie Ihre Startgewichte basierend auf Ihrem 5-Wiederholungs-Maximum</MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Color="Color.Primary" Size="Size.Large"/>
+            </CardHeaderActions>
+        </MudCardHeader>
+
+        <MudDivider Class="my-2"/>
+
+        <MudCardContent>
+            <MudGrid>
+                @foreach (var exercise in Exercises)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudPaper Elevation="2" Class="pa-4">
+                            <MudStack>
+                                <MudText Typo="Typo.h6">@exercise.ExerciseName</MudText>
+                                <MudNumericField T="double"
+                                @bind-Value="@ModelList.Find(sw => sw.ExerciseId == exercise.ExerciseId).Weight"
+                                Label="Gewicht in kg"
+                                Variant="Variant.Outlined"
+                                Min="0"
+                                Step="2.5"
+                                Format="F1"
+                                Adornment="Adornment.Start"
+                                AdornmentIcon="@Icons.Material.Filled.FitnessCenter"
+                                AdornmentColor="Color.Secondary"
+                                HelperText="Geben Sie Ihr Startgewicht ein"/>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudCardContent>
+
+        <MudCardActions Class="d-flex justify-center pa-4">
+            <MudButton Variant="Variant.Filled"
+            Color="Color.Primary"
+            Size="Size.Large"
+            OnClick="OpenDialog"
+            StartIcon="@Icons.Material.Filled.Save"
+            Disabled="@(!ModelList.Any() || ModelList.Any(m => m.Weight <= 0))"
+            Class="px-8">
+                Gewichte Speichern
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    [SupplyParameterFromForm]
+    public CreateStartingWeights Model { get; set; } = new CreateStartingWeights();
+
+    private List<Exercise> Exercises { get; set; } = new List<Exercise>();
+    private List<Starting_Weights> ModelList { get; set; } = new List<Starting_Weights>();
+    private Dictionary<string, double> ModalValues = new Dictionary<string, double>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = Userservice.GetCurrentUserId();
+        if (userId != null)
+        {
+            Model.UserId = userId.Value;
+        }
+        else
+        {
+            try 
+            {
+                navigationManager.NavigateTo("/login");
+            }
+            catch(Exception ex)
+            {
+                return;
+            }
+            return;
+        }
+
+        Exercises = appDbContext.Exercises.ToList();
+
+        foreach (var exercise in Exercises)
+        {
+            ModelList.Add(new Starting_Weights
+                {
+                    UserId = userId.Value,
+                    ExerciseId = exercise.ExerciseId,
+                    Weight = 0
+                });
+        }
+    }
+
+    private async Task OpenDialog()
+    {
+        ModalValues.Clear();
+        foreach (var ex in Exercises)
+        {
+            ModalValues[ex.ExerciseName] = ModelList.Find(sw => sw.ExerciseId == ex.ExerciseId).Weight;
+        }
+
+        var parameters = new DialogParameters
+        {
+            ["Weights"] = ModalValues
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium
+        };
+
+        var dialog = await DialogService.ShowAsync<StartingWeightsDialog>("Gewichte bestätigen", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await SaveStartingWeights();
+        }
+    }
+
+    private async Task SaveStartingWeights()
+    {
+        try
+        {
+            foreach (var weight in ModelList)
+            {
+                appDbContext.startingWeights.Add(new Starting_Weights
+                    {
+                        ExerciseId = weight.ExerciseId,
+                        UserId = weight.UserId,
+                        Weight = weight.Weight
+                    });
+            }
+            
+            await appDbContext.SaveChangesAsync();
+            navigationManager.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            // TODO: Fehlerbehandlung implementieren
+        }
+    }
+}

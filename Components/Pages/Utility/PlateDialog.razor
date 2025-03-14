@@ -1,0 +1,33 @@
+﻿<MudDialog>
+    <TitleContent>
+        Möchten Sie die folgenden Platten speichern?
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            @foreach (var plate in PlateCounts)
+            {
+                var weight = plate.Key.Substring(5); // Entfernt "Check" vom Key
+                <MudItem xs="12">
+                    <MudText>@weight kg: @plate.Value Stück</MudText>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public Dictionary<string, int> PlateCounts { get; set; } = new Dictionary<string, int>();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+}
+

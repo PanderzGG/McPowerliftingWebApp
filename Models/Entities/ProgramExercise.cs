@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
-namespace MCPowerlifting.Models.Entities
+namespace MudCowV2.Models.Entities
 {
     [Table("program_exercises")]
     public class ProgramExercise
@@ -38,5 +38,4 @@ namespace MCPowerlifting.Models.Entities
         public WorkoutProgram? Program { get; set; }
         public Exercise? Exercise { get; set; }
     }
-
 }

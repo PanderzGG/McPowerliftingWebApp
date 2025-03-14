@@ -1,8 +1,8 @@
-﻿using MCPowerlifting.Components.Pages.Workout;
-using MCPowerlifting.Models.Entities;
-using MCPowerlifting.Models.ViewModels;
+﻿using MudCowV2.Helper;
+using MudCowV2.Models.Entities;
+using MudCowV2.Models.ViewModels;
 
-namespace MCPowerlifting.Helper
+namespace MudCow.Helper
 {
     public class MadCowWorkoutCalculator
     {
@@ -15,7 +15,7 @@ namespace MCPowerlifting.Helper
         {
 
         }
- 
+
 
         public Dictionary<string, double> NextWorkoutWeights(List<NextWorkoutViewModel> nextWeights)
         {
@@ -24,7 +24,7 @@ namespace MCPowerlifting.Helper
             if (nextWeights.Any(x => x.isNew))
             {
                 bool lightLoad = nextWeights.Any(x => x.workoutLoad == "light");
-                
+
                 foreach (var pair in nextWeights)
                 {
                     if (lightLoad)
@@ -57,10 +57,10 @@ namespace MCPowerlifting.Helper
                                 break;
                         }
                     }
-                    
+
                 }
             }
-            else if(!nextWeights.Any(x => x.isNew))
+            else if (!nextWeights.Any(x => x.isNew))
             {
                 var load = nextWeights[0];
                 int failureInRow = load.failureInRow;
@@ -68,155 +68,155 @@ namespace MCPowerlifting.Helper
 
                 switch (load.workoutLoad)
                 {
-                        case "light":
-                            foreach (var pair in nextWeights)
+                    case "light":
+                        foreach (var pair in nextWeights)
+                        {
+                            if (!exerciseWeights.ContainsKey(pair.exerciseName))
                             {
-                                if (!exerciseWeights.ContainsKey(pair.exerciseName))
+                                switch (pair.exerciseName.ToLower())
                                 {
-                                    switch (pair.exerciseName.ToLower())
-                                    {
-                                        case "squat":
-                                            if (pair.failureInRow == 2)
-                                            {
-                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                            }
-                                            else
-                                            {
+                                    case "squat":
+                                        if (pair.failureInRow == 2)
+                                        {
+                                            exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                        }
+                                        else
+                                        {
+                                            exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                        }
+                                        break;
+                                    case "overhead press":
+                                        switch (pair.failureInRow)
+                                        {
+                                            case 1:
                                                 exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                            }
-                                            break;
-                                        case "overhead press":
-                                            switch (pair.failureInRow)
-                                            {
-                                                case 1:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                                    break;
-                                                case 2:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                                    break;
-                                                default:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight + 2.5);
-                                                    break;
-                                            }
-                                            break;
-                                        case "deadlift":
-                                            switch (pair.failureInRow)
-                                            {
-                                                case 1:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                                    break;
-                                                case 2:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                                    break;
-                                                default:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight + 5.0);
-                                                    break;
-                                            }
+                                                break;
+                                            case 2:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                                break;
+                                            default:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight + 2.5);
+                                                break;
+                                        }
                                         break;
-                                    }
-                                }   
-                            }
-                            break;
-                        case "medium":
-                            foreach (var pair in nextWeights)
-                            {
-                                if (!exerciseWeights.ContainsKey(pair.exerciseName))
-                                {
-                                    switch (pair.exerciseName.ToLower())
-                                    {
-                                        case "squat":
-                                            switch (pair.failureInRow)
-                                            {
-                                                case 1:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                                    break;
-                                                case 2:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                                    break;
-                                                default:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight + 2.5);
-                                                    break;
-                                            }
+                                    case "deadlift":
+                                        switch (pair.failureInRow)
+                                        {
+                                            case 1:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                                break;
+                                            case 2:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                                break;
+                                            default:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight + 5.0);
+                                                break;
+                                        }
                                         break;
-                                        case "bench press":
-                                            switch (pair.failureInRow)
-                                            {
-                                                case 1:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                                    break;
-                                                case 2:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                                    break;
-                                                default:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight + 2.5);
-                                                    break;
-                                            }
-                                        break;
-                                        case "barbell row":
-                                            switch (pair.failureInRow)
-                                            {
-                                                case 1:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                                    break;
-                                                case 2:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                                    break;
-                                                default:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight + 2.5);
-                                                    break;
-                                            }
-                                        break;
-                                    }
                                 }
                             }
+                        }
                         break;
-                        case "heavy":
-                            foreach (var pair in nextWeights)
+                    case "medium":
+                        foreach (var pair in nextWeights)
+                        {
+                            if (!exerciseWeights.ContainsKey(pair.exerciseName))
                             {
-                                if (!exerciseWeights.ContainsKey(pair.exerciseName))
+                                switch (pair.exerciseName.ToLower())
                                 {
-                                    switch (pair.exerciseName.ToLower())
-                                    {
-                                        case "squat":
-                                            switch (pair.failureInRow)
-                                            {
-                                                case 2:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                                    break;
-                                                default:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                                    break;
-                                            }
+                                    case "squat":
+                                        switch (pair.failureInRow)
+                                        {
+                                            case 1:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                                break;
+                                            case 2:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                                break;
+                                            default:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight + 2.5);
+                                                break;
+                                        }
                                         break;
-                                        case "bench press":
-                                            switch (pair.failureInRow)
-                                            {
-                                                case 2:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                                    break;
-                                                default:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                                    break;
-                                            }
+                                    case "bench press":
+                                        switch (pair.failureInRow)
+                                        {
+                                            case 1:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                                break;
+                                            case 2:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                                break;
+                                            default:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight + 2.5);
+                                                break;
+                                        }
                                         break;
-                                        case "barbell row":
-                                            switch (pair.failureInRow)
-                                            {
-                                                case 2:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
-                                                    break;
-                                                default:
-                                                    exerciseWeights.Add(pair.exerciseName, pair.weight);
-                                                    break;
-                                            }
+                                    case "barbell row":
+                                        switch (pair.failureInRow)
+                                        {
+                                            case 1:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                                break;
+                                            case 2:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                                break;
+                                            default:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight + 2.5);
+                                                break;
+                                        }
                                         break;
-                                    }
                                 }
-                                
                             }
+                        }
+                        break;
+                    case "heavy":
+                        foreach (var pair in nextWeights)
+                        {
+                            if (!exerciseWeights.ContainsKey(pair.exerciseName))
+                            {
+                                switch (pair.exerciseName.ToLower())
+                                {
+                                    case "squat":
+                                        switch (pair.failureInRow)
+                                        {
+                                            case 2:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                                break;
+                                            default:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                                break;
+                                        }
+                                        break;
+                                    case "bench press":
+                                        switch (pair.failureInRow)
+                                        {
+                                            case 2:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                                break;
+                                            default:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                                break;
+                                        }
+                                        break;
+                                    case "barbell row":
+                                        switch (pair.failureInRow)
+                                        {
+                                            case 2:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight - (pair.weight * 0.10));
+                                                break;
+                                            default:
+                                                exerciseWeights.Add(pair.exerciseName, pair.weight);
+                                                break;
+                                        }
+                                        break;
+                                }
+                            }
+
+                        }
                         break;
                 }
-                
+
             }
             return exerciseWeights;
         }
@@ -225,7 +225,7 @@ namespace MCPowerlifting.Helper
         public List<ActiveExercise> CalculateExercise(string exerciseName, double maxWeight, string loadType)
         {
             ActiveExercise activeExercise = new ActiveExercise();
-            
+
             List<ActiveExercise> workingSetsRepsWeights = new List<ActiveExercise>();
             List<ActiveExercise> warmUpSetsRepsWeights = new List<ActiveExercise>();
 
@@ -244,7 +244,7 @@ namespace MCPowerlifting.Helper
                         double minimumWeight = workingSetsRepsWeights.First(x => x.SetNumber == 1).SetWeight;
                         warmUpSetsRepsWeights = CalculateWarmUpWeights(minimumWeight);
                     }
-                    if(warmUpSetsRepsWeights.Count > 0)
+                    if (warmUpSetsRepsWeights.Count > 0)
                     {
                         totalSetRepWeight.AddRange(warmUpSetsRepsWeights);
                     }
@@ -310,7 +310,7 @@ namespace MCPowerlifting.Helper
 
             return totalSetRepWeight;
         }
-        
+
         public List<ActiveExercise> CalculateWarmUpWeights(double minimumWeight)
         {
             List<ActiveExercise> warmUpSets = new List<ActiveExercise>();
@@ -321,7 +321,7 @@ namespace MCPowerlifting.Helper
 
             for (int i = 0; i <= 1; i++)
             {
-                ActiveExercise tempSet= new ActiveExercise();
+                ActiveExercise tempSet = new ActiveExercise();
                 tempSet.SetNumber = i + 1;
                 tempSet.SetType = "warmup";
                 tempSet.SetWeight = setLight;
@@ -405,7 +405,7 @@ namespace MCPowerlifting.Helper
                             SetWeight = maxWeight - ((maxWeight * 0.125) * (3 - (i))),
                             SetReps = 5
                         });
-                        
+
                     }
                     break;
             }
@@ -455,8 +455,8 @@ namespace MCPowerlifting.Helper
                     }
                     break;
             }
-            
-            
+
+
             return exerciseMaxWeights;
         }
 
@@ -464,14 +464,14 @@ namespace MCPowerlifting.Helper
         {
             Dictionary<string, double> exerciseMaxWeights = new Dictionary<string, double>();
 
-            foreach(var pair in suppliedWeights)
+            foreach (var pair in suppliedWeights)
             {
                 switch (pair.Load.ToLower())
                 {
                     case "light":
                         if (pair.ExerciseName.ToLower() != "bench press" || pair.ExerciseName.ToLower() != "barbell row")
                         {
-                            if(pair.ExerciseName.ToLower() != "squat")
+                            if (pair.ExerciseName.ToLower() != "squat")
                             {
                                 if (pair.FailInRow == 2 || pair.isDeload)
                                 {
@@ -514,7 +514,7 @@ namespace MCPowerlifting.Helper
                         break;
                 }
             }
-            
+
 
             return exerciseMaxWeights;
         }

@@ -1,0 +1,225 @@
+﻿@page "/Progress/progress"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using MudCowV2.Data
+@using MudCowV2.Models.Entities
+@using MudCowV2.Helper
+@using MudCowV2.Services
+
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+
+<PageTitle>Fortschritt</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudCard Elevation="3">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h4" Color="Color.Primary">Trainingsfortschritt</MudText>
+                <MudText Typo="Typo.subtitle1" Class="mt-1">Übersicht Ihrer Gewichtsentwicklung</MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudIcon Icon="@Icons.Material.Filled.Timeline" Color="Color.Primary" Size="Size.Large"/>
+            </CardHeaderActions>
+        </MudCardHeader>
+
+        <MudDivider Class="my-2"/>
+
+        <MudCardContent>
+            @if (!workoutExercises.Any())
+            {
+                <MudAlert Severity="Severity.Info" Class="my-4">
+                    <MudText>Sie haben noch keine Trainingseinheiten absolviert. Starten Sie Ihr erstes Training, um Ihren Fortschritt zu sehen!</MudText>
+                </MudAlert>
+            }
+            else
+            {
+                <MudCarousel Class="mud-width-full" 
+                            Style="height:70vh;" 
+                            ShowArrows="@arrows" 
+                            ShowBullets="@bullets" 
+                            EnableSwipeGesture="@enableSwipeGesture" 
+                            AutoCycle="@autocycle" 
+                            TData="object">
+                    @foreach (var ex in workoutExercises.Select(x => x.Exercise.ExerciseName).Distinct())
+                    {
+                        var exerciseKey = ex.ToLower();
+                        <MudCarouselItem Transition="transition">
+                            <MudPaper Class="pa-4" Style="height:100%">
+                                @if (ExerciseSeriesMap.ContainsKey(exerciseKey) && ExerciseLabelsMap.ContainsKey(exerciseKey))
+                                {
+                                    <div class="d-flex flex-column h-100">
+                                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">
+                                            <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Class="mr-2"/>
+                                            @ex
+                                        </MudText>
+
+                                        <MudChart ChartType="ChartType.Line"
+                                                ChartSeries="@ExerciseSeriesMap[exerciseKey]"
+                                                @bind-SelectedIndex="ExerciseIndexMap[exerciseKey]"
+                                                XAxisLabels="@ExerciseLabelsMap[exerciseKey]"
+                                                Width="100%"
+                                                Height="350px"
+                                                ChartOptions="@Options"/>
+
+                                        @{
+                                            var index = ExerciseIndexMap[exerciseKey];
+                                            var series = ExerciseSeriesMap[exerciseKey];
+                                            var selectedPoint = index >= 0 ? series[0].Data[index] : 0;
+                                            var selectedDate = index >= 0 ? ExerciseLabelsMap[exerciseKey][index] : "";
+                                        }
+
+                                        @if (index >= 0)
+                                        {
+                                            <MudPaper Class="mt-4 pa-4" Elevation="0">
+                                                <MudText Typo="Typo.body1">
+                                                    <strong>Datum:</strong> @selectedDate
+                                                </MudText>
+                                                <MudText Typo="Typo.body1">
+                                                    <strong>Gewicht:</strong> @selectedPoint kg
+                                                </MudText>
+                                            </MudPaper>
+                                        }
+                                    </div>
+                                }
+                            </MudPaper>
+                        </MudCarouselItem>
+                    }
+                </MudCarousel>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; }
+    
+    // Carousel-Konfiguration
+    private bool arrows = true;
+    private bool bullets = true;
+    private bool enableSwipeGesture = true;
+    private bool autocycle = false;
+    private Transition transition = Transition.Slide;
+
+    // Chart-Konfiguration
+    public ChartOptions Options = new ChartOptions
+    {
+        YAxisFormat = "0.# kg",
+        InterpolationOption = InterpolationOption.Straight
+    };
+
+    // Datensammlungen
+    private List<Workout> workouts = new List<Workout>();
+    private List<WorkoutExercise> workoutExercises = new List<WorkoutExercise>();
+    private List<ProgressData> exerciseData = new List<ProgressData>();
+
+    // Chart-Datenwörterbücher (Schlüssel: Übungsname in Kleinbuchstaben)
+    private Dictionary<string, List<ChartSeries>> ExerciseSeriesMap = new Dictionary<string, List<ChartSeries>>();
+    private Dictionary<string, string[]> ExerciseLabelsMap = new Dictionary<string, string[]>();
+    private Dictionary<string, int> ExerciseIndexMap = new Dictionary<string, int>();
+
+    /// <summary>
+    /// Initialisiert die Komponente und lädt die Daten
+    /// </summary>
+    override protected async Task OnInitializedAsync()
+    {
+        await LoadData();
+        PopulateAllExerciseCharts();
+    }
+
+    /// <summary>
+    /// Generiert Diagramme für alle gefundenen Übungen
+    /// </summary>
+    private void PopulateAllExerciseCharts()
+    {
+        foreach (var exerciseName in workoutExercises.Select(x => x.Exercise.ExerciseName).Distinct())
+        {
+            PopulateExerciseChart(exerciseName);
+        }
+    }
+
+    /// <summary>
+    /// Erstellt Diagrammdaten für eine bestimmte Übung
+    /// </summary>
+    /// <param name="exerciseName">Name der zu visualisierenden Übung</param>
+    private void PopulateExerciseChart(string exerciseName)
+    {
+        var exerciseKey = exerciseName.ToLower();
+
+        // Filtere Daten für diese spezifische Übung
+        var exerciseData = this.exerciseData
+            .Where(x => x.ExerciseName.ToLower() == exerciseKey)
+            .OrderBy(x => x.Date)
+            .ToList();
+
+        if (exerciseData.Any())
+        {
+            // Erstelle X-Achsen-Beschriftungen aus Daten
+            ExerciseLabelsMap[exerciseKey] = exerciseData.Select(x => x.Date.ToString("dd.MM.")).ToArray();
+
+            // Erstelle Datenserie mit Gewichten
+            var series = new ChartSeries
+            {
+                Name = exerciseName,
+                Data = exerciseData.Select(x => (double)x.SetWeight).ToArray()
+            };
+
+            // Füge zu Sammlungen hinzu
+            ExerciseSeriesMap[exerciseKey] = new List<ChartSeries> { series };
+            ExerciseIndexMap[exerciseKey] = -1; // Standardindexwert
+        }
+        else
+        {
+            // Fallback für leere Daten
+            ExerciseLabelsMap[exerciseKey] = new[] { "Keine Daten" };
+            ExerciseSeriesMap[exerciseKey] = new List<ChartSeries> { new ChartSeries { Name = "Keine Daten", Data = new[] { 0.0 } } };
+            ExerciseIndexMap[exerciseKey] = -1;
+        }
+    }
+
+    
+    // Lädt Benutzer-Trainingsdaten aus der Datenbank
+    protected async Task LoadData()
+    {
+        var userId = await GetUserIdAsync();
+        workouts = appDbContext.Workouts.Where(x => x.UserId == userId).ToList();
+
+        foreach (var workout in workouts)
+        {
+            workoutExercises.AddRange(await appDbContext.workoutExercises
+                .Include(x => x.Exercise)
+                .Include(x => x.Workout)
+                .Where(x => x.WorkoutId == workout.WorkoutId)
+                .ToListAsync());
+        }
+
+        workoutExercises = workoutExercises.OrderByDescending(x => x.WorkoutId).ToList();
+
+        // Transformiere Workout-Übungen in Diagrammdatenpunkte
+        foreach (var exercise in workoutExercises)
+        {
+            exerciseData.Add(new ProgressData
+            {
+                ExerciseName = exercise.Exercise.ExerciseName,
+                SetWeight = (decimal)exercise.ActualWeight,
+                Date = exercise.Workout.Date.Date
+            });
+        }
+    }
+
+    private async Task<int> GetUserIdAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+
+        if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
+        {
+            return userId;
+        }
+
+        return 0; // oder einen Standardwert oder eine Exception werfen
+    }
+}

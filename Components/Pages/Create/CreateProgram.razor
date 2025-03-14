@@ -1,0 +1,242 @@
+﻿@page "/create-program"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using MudCowV2.Data
+@using MudCowV2.Helper
+@using MudCowV2.Models.Entities
+@using MudCowV2.Models.ViewModels
+@using MudCowV2.Services
+@attribute [Authorize]
+
+@inject UserService Userservice
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudCard Elevation="3">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h4" Color="Color.Primary">Willkommen bei MudCow Powerlifting</MudText>
+                <MudText Typo="Typo.subtitle1" Class="mt-1">Beginnen Sie Ihre Kraftreise</MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Color="Color.Primary" Size="Size.Large"/>
+            </CardHeaderActions>
+        </MudCardHeader>
+
+        <MudDivider Class="my-2"/>
+
+        <MudCardContent>
+            <MudPaper Elevation="0" Class="pa-4">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="KeyValuePair<int, string>" 
+                                 @bind-Value="selectedProgram"
+                                 Label="Wählen Sie Ihr Programm"
+                                 Variant="Variant.Outlined"
+                                 AnchorOrigin="Origin.BottomCenter"
+                                 Class="mt-4">
+                            <MudSelectItem T="KeyValuePair<int, string>" Value="@(new KeyValuePair<int, string>())">
+                                <MudText>Bitte wählen Sie ein Programm</MudText>
+                            </MudSelectItem>
+                            @foreach (var program in programs.AllPrograms)
+                            {
+                                <MudSelectItem T="KeyValuePair<int, string>" Value="@program">
+                                    <MudText>@program.Value</MudText>
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                        
+                        @if (!string.IsNullOrEmpty(Model.ProgramName))
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                                @GetProgramDescription(Model.ProgramName)
+                            </MudText>
+                        }
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="BarWeight"
+                                       Label="Langhantelgewicht (kg)"
+                                       Variant="Variant.Outlined"
+                                       Min="10"
+                                       Max="30"
+                                       Step="0.2M"
+                                       Format="F1"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.Scale"
+                                       AdornmentColor="Color.Secondary"
+                                       Class="mt-4"
+                                       HelperText="Geben Sie das Gewicht Ihrer Langhantel ein"/>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudCardContent>
+
+        <MudCardActions Class="d-flex justify-center pa-4">
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      Size="Size.Large"
+                      OnClick="SaveNewProgram"
+                      StartIcon="@Icons.Material.Filled.Save"
+                      Disabled="@(string.IsNullOrEmpty(Model.ProgramName) || BarWeight <= 0)"
+                      Class="px-8">
+                Programm Erstellen
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    // ViewModel für die Datenübertragung zwischen UI und Logik
+    [SupplyParameterFromForm]
+    public BeginProgramViewModel Model { get; set; } = new BeginProgramViewModel();
+
+    // Verfügbare Programme aus dem Helper-Objekt
+    public AvailablePrograms programs = new AvailablePrograms();
+
+    // Speichert die ausgewählte Programm-ID aus dem Dropdown
+    private int ProgramSelection { get; set; }
+    private bool Hide { get; set; } = true;
+
+    public decimal BarWeight { get; set; }
+
+    private KeyValuePair<int, string> _selectedProgram;
+    private KeyValuePair<int, string> selectedProgram
+    {
+        get => _selectedProgram;
+        set
+        {
+            _selectedProgram = value;
+            Model.ProgramName = value.Value;
+            ProgramSelection = value.Key;
+        }
+    }
+
+    // Wird beim Klick auf "Create Program" ausgeführt, lädt Benutzerdaten für das Modal
+    override protected async Task OnInitializedAsync()
+    {
+        var userId = Userservice.GetCurrentUserId();
+        if (userId.HasValue)
+        {
+            Model.UserId = userId.Value;
+
+            // Benutzernamen aus der Datenbank laden
+            var user = await appDbContext.Users.FindAsync(userId.Value);
+            Model.UserName = user?.Username ?? "Unbekannter Benutzer";
+        }
+    }
+
+
+    // Speichert die Programm- und Ausrüstungsdaten in der Datenbank
+    private async Task SaveNewProgram()
+    {
+        Model.BarWeight = (double)BarWeight;
+        // Validierung: Langhantelgewicht und Programmname müssen gültig sein
+        if (Model.BarWeight <= 0)
+        {
+            return;
+        }
+
+        if (Model.ProgramName == null || Model.ProgramName == "Choose your Program")
+        {
+            return;
+        }
+
+        // Programmspezifische Beschreibungen zuweisen
+        switch (Model.ProgramName)
+        {
+            case "MadCow 5x5":
+                Model.Description = "Madcow 5x5 is a strength program that uses a 5x5 rep scheme. It is designed to be run for 12 weeks.";
+                break;
+            case "Stronglifts 5x5":
+                Model.Description = "Stronglifts 5x5 is a strength program that uses a 5x5 rep scheme. It is designed to be run for 12 weeks.";
+                break;
+            default:
+                Model.Description = "No description available";
+                break;
+        }
+
+        // Speichern oder Aktualisieren des Trainingsprogramms in der Datenbank
+        WorkoutProgram newProgram = new WorkoutProgram
+            {
+                Name = Model.ProgramName,
+                UserId = Model.UserId,
+                Description = Model.Description
+            };
+
+        // Prüfen, ob bereits ein Programm für diesen Benutzer existiert
+        WorkoutProgram? existingProgram = await appDbContext.WorkoutPrograms.Where(wp => wp.UserId == Model.UserId).FirstOrDefaultAsync();
+
+        if (existingProgram != null)
+        {
+            // Bestehende Daten aktualisieren
+            existingProgram.Name = Model.ProgramName;
+            existingProgram.Description = Model.Description;
+        }
+        else
+        {
+            // Neues Programm hinzufügen
+            appDbContext.WorkoutPrograms.Add(newProgram);
+        }
+
+        // Speichern oder Aktualisieren der Ausrüstungsdaten (Langhantel)
+        Equipment? equipment = await appDbContext.Equipments.Where(eq => eq.UserId == Model.UserId).FirstOrDefaultAsync();
+
+        if (equipment != null)
+        {
+            // Bestehende Ausrüstung aktualisieren
+            equipment.BarWeight = Model.BarWeight;
+            equipment.UpdatedAt = DateTime.Now;
+            // appDbContext.Equipments.Update(equipment); // Optional, da Entity Framework das Objekt schon trackt
+        }
+        else
+        {
+            // Neue Ausrüstung hinzufügen
+            Equipment newEquipment = new Equipment
+                {
+                    BarWeight = Model.BarWeight,
+                    UserId = Model.UserId,
+                    UpdatedAt = DateTime.Now
+                };
+            appDbContext.Equipments.Add(newEquipment);
+        }
+
+        // Änderungen in der Datenbank speichern
+        try
+        {
+            await appDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // Fehlerbehandlung hier erweitern
+            return;
+        }
+
+        // Nach dem Speichern: Ermitteln, ob bereits Gewichtsscheiben konfiguriert wurden
+        equipment = await appDbContext.Equipments.Where(equipment => equipment.UserId == Model.UserId).FirstOrDefaultAsync();
+        bool equipmentHasPlates = await appDbContext.Plates.Where(plates => plates.EquipmentId == equipment.EquipmentId).AnyAsync();
+
+        // Navigationslogik: Zur nächsten Konfigurationsseite leiten
+        if (!equipmentHasPlates)
+        {
+            // Gewichtsscheiben müssen noch konfiguriert werden
+            navigationManager.NavigateTo("/create-plates");
+        }
+        else
+        {
+            // Gewichtsscheiben bereits vorhanden, direkt zu Anfangsgewichten
+            navigationManager.NavigateTo("/starting-weights");
+        }
+    }
+
+    private string GetProgramDescription(string programName)
+    {
+        return programName switch
+        {
+            "MadCow 5x5" => "Ein fortgeschrittenes 5x5 Kraftprogramm mit wöchentlicher Progression. Ideal für erfahrene Kraftsportler, die ihre Kraft weiter steigern möchten.",
+            "Stronglifts 5x5" => "Ein bewährtes Anfängerprogramm mit 5x5 Wiederholungen. Perfekt für Einsteiger, die Kraft aufbauen und die grundlegenden Übungen erlernen möchten.",
+            _ => "Keine Beschreibung verfügbar"
+        };
+    }
+}

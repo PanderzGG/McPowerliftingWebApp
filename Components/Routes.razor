@@ -1,8 +1,22 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <CheckAuthorization />
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <MudContainer Class="mt-16 d-flex flex-column align-center">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Class="mb-4">404 - Seite nicht gefunden</MudText>
+                <MudText>Die angeforderte Seite wurde nicht gefunden.</MudText>
+                <MudButton Href="/" Color="Color.Primary" Variant="Variant.Filled" Class="mt-4">Zurück zur Startseite</MudButton>
+            </MudContainer>
+        </LayoutView>
+    </NotFound>
 </Router>
-
-<NotificationProvider />

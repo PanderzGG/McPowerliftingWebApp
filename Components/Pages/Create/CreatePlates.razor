@@ -1,0 +1,185 @@
+﻿@page "/create-plates"
+@using Microsoft.AspNetCore.Authorization
+@using MudCowV2.Data
+@using MudCowV2.Models.Entities
+@using MudCowV2.Models.ViewModels
+@using MudCowV2.Services
+@attribute [Authorize]
+
+
+@inject UserService UserService
+@inject AppDbContext appDbContext
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudCard Elevation="3">
+        <MudCardHeader>
+            <MudText Typo="Typo.h5">Gewichtsscheiben Konfiguration</MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudText Typo="Typo.body1" Class="mb-4">Wählen Sie die verfügbaren Gewichtsscheiben aus und geben Sie deren Anzahl an:</MudText>
+            
+            <MudGrid>
+                @foreach (var checkPair in Checks)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudPaper Class="pa-4" Elevation="2">
+                            <MudStack>
+                                <MudCheckBox @bind-Value="@Checks[checkPair.Key]" 
+                                           Dense="true"
+                                           Color="Color.Primary"
+                                           Label=@($"{checkPair.Key.Substring(5)} kg Scheiben")/>
+                                
+                                @if(checkPair.Value)
+                                {
+                                    <MudNumericField @bind-Value="@PlateCounts[checkPair.Key]"
+                                                    Label="Anzahl"
+                                                    Variant="Variant.Outlined"
+                                                    Min="0"
+                                                    Class="mt-2"
+                                                    Adornment="Adornment.Start"
+                                                    AdornmentIcon="@Icons.Material.Filled.Numbers"
+                                                    Step="1" />
+                                }
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudCardContent>
+        <MudCardActions Class="d-flex justify-center pb-4">
+            <MudButton OnClick="OpenDialog" 
+                      Variant="Variant.Filled" 
+                      Color="Color.Primary" 
+                      Size="Size.Large"
+                      StartIcon="@Icons.Material.Filled.Save"
+                      DisableElevation="true">
+                Gewichte Speichern
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    // ViewModel für die Kommunikation mit dem Server
+    [SupplyParameterFromForm]
+    public PlateViewModel Model { get; set; } = new PlateViewModel();
+
+
+    // Fehlermeldung bei Validierungsproblemen
+    private string? errorMessage;
+
+    // Dictionary zur Verwaltung des Auswahlzustands jeder Plattenart
+    // Key: "Check" + Gewicht, Value: Ist ausgewählt (true/false)
+    public Dictionary<string, bool> Checks { get; set; } = new Dictionary<string, bool>
+    {
+        {"Check0,25", false},
+        {"Check0,50", false},
+        {"Check0,75", false},
+        {"Check1,25", false},
+        {"Check2,50", false},
+        {"Check5,00", false},
+        {"Check10,00", false},
+        {"Check15,00", false},
+        {"Check20,00", false},
+        {"Check25,00", false}
+    };
+
+    // Dictionary zur Speicherung der Anzahl jeder ausgewählten Plattenart
+    // Key: "Check" + Gewicht, Value: Anzahl der Platten
+    public Dictionary<string, int> PlateCounts { get; set; } = new Dictionary<string, int>
+    {
+        {"Check0,25", 0},
+        {"Check0,50", 0},
+        {"Check0,75", 0},
+        {"Check1,25", 0},
+        {"Check2,50", 0},
+        {"Check5,00", 0},
+        {"Check10,00", 0},
+        {"Check15,00", 0},
+        {"Check20,00", 0},
+        {"Check25,00", 0}
+    };
+
+    // Speichert die ausgewählten Platten in der Datenbank
+    private async Task CreatingPlateSave()
+    {
+        // Benutzer-ID abrufen
+        var userId = UserService.GetCurrentUserId();
+
+        // Überprüfen, ob bereits eine Equipment-Konfiguration existiert (Langhantel)
+        Equipment? equipment = appDbContext.Equipments.FirstOrDefault(e => e.UserId == userId);
+
+        // Wenn keine Langhantel konfiguriert ist, zurück zur Programmkonfiguration
+        if (equipment == null)
+        {
+            errorMessage = "Please enter a Barweight first.";
+            navigationManager.NavigateTo("/create-program");
+        }
+
+        // Setze die Equipment-ID im Modell
+        Model.EquipmentId = equipment.EquipmentId;
+
+        // Erstelle für jede ausgewählte Plattenart einen Datenbankeintrag
+        foreach (var p in PlateCounts)
+        {
+            if (p.Value > 0)
+            {
+                // Plattenobjekt für Datenbank erstellen
+                Plate plate = new Plate
+                    {
+                        EquipmentId = Model.EquipmentId,
+                        PlateWeight = Convert.ToDouble(p.Key.Substring(5)),  // Extrahiere Gewicht aus dem Key
+                        PlateCount = p.Value  // Anzahl der Platten
+                    };
+                appDbContext.Plates.Add(plate);
+            }
+        }
+
+        // Speichern der Änderungen in der Datenbank
+        try
+        {
+            await appDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // Fehlerbehandlung sollte hier implementiert werden
+            return;
+        }
+
+        // Weiterleitung zur Eingabe der Anfangsgewichte
+        navigationManager.NavigateTo("/starting-weights");
+    }
+
+    private async Task OpenDialog()
+    {
+        var parameters = new DialogParameters();
+        
+        // Übergebe nur die Platten, die eine Anzahl größer als 0 haben
+        var selectedPlates = PlateCounts
+            .Where(p => p.Value > 0)
+            .ToDictionary(p => p.Key, p => p.Value);
+            
+        parameters.Add("PlateCounts", selectedPlates);
+        
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium
+        };
+        
+        var dialog = await DialogService.ShowAsync<Pages.Utility.PlateDialog>("Ausgewählte Platten", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await CreatingPlateSave();
+        }
+    }
+}

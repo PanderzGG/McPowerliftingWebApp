@@ -1,4 +1,4 @@
-﻿namespace MCPowerlifting.Models.ViewModels
+﻿namespace MudCowV2.Models.ViewModels
 {
     public class BeginProgramViewModel
     {
@@ -6,7 +6,7 @@
         public string ProgramId { get; set; }
         public int UserId { get; set; }
         public string UserName { get; set; }
-        public float BarWeight { get; set; }
+        public double BarWeight { get; set; }
         public string? Description { get; set; }
         public DateTime StartDate { get; set; }
     }

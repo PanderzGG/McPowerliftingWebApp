@@ -1,271 +1,317 @@
-﻿@page "/active-workout"
-@attribute [Authorize(Roles = "user")]
+﻿@page "/Workout/active-workout"
+@attribute [Authorize]
 
-@using MCPowerlifting.Helper
-@using MCPowerlifting.Models.Entities
-@using MCPowerlifting.Models.ViewModels
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using MudCow.Helper
+@using MudCowV2.Components.Pages.Utility
+@using MudCowV2.Helper
+@using MudCowV2.Models.Entities
+@using MudCowV2.Data
+@using MudCowV2.Models.ViewModels
+@using MudCowV2.Services
 @using System.Timers
-@using BlazorColor = Blazorise.Color;
+@using System.Security.Claims
 
-@rendermode InteractiveServer
-@inject UserService Userservice
+
+@* @inject UserService Userservice *@
 @inject AppDbContext appDbContext
 @inject NavigationManager navigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
-<Div Display="Display.Flex" Class="justify-content-center" Style="min-width:30rem;">
-    <Card Display="Display.Flex" Style="max-width:fit-content;">
-        <CardHeader>
-            <h1>Active Workout</h1>
-        </CardHeader>
-        <CardBody Display="Display.Flex" Class="justify-content-center">
-            @* Zustand 1: Workout noch nicht gestartet - zeigt geplante Übungen und Gewichte *@
+<PageTitle>Aktives Training</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudCard Elevation="3" Class="mx-auto" Style="max-width: 800px;">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h4" Color="Color.Primary">Aktives Training</MudText>
+                @if(isActive)
+                {
+                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Gesamtzeit: @overallFormattedTime</MudText>
+                }
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Color="Color.Primary" Size="Size.Large"/>
+            </CardHeaderActions>
+        </MudCardHeader>
+
+        <MudDivider/>
+
+        <MudCardContent>
+            @* Zustand 1: Workout noch nicht gestartet *@
             @if (!isActive)
             {
-                // Listen-Darstellung der geplanten Übungen mit Gewichten
-                <ListGroup Display="Display.Flex">
+                <MudList T="string" Dense="false" DisablePadding="true">
                     @foreach (var exercise in activeWeights)
                     {
                         double roundedWeight = Math.Round(exercise.Value, 2);
-
-                        <ListGroupItem>
-                            <Card Class="justify-content-center mx-4">
-                                <CardBody Display="Display.Flex" Class="justify-content-center mx-4">
-                                    <h4>@exercise.Key: @roundedWeight Kg</h4>
-                                </CardBody>
-                            </Card>
-                        </ListGroupItem>
-
+                        <MudListItem T="string">
+                            <MudPaper Elevation="2" Class="pa-4">
+                                <div class="d-flex justify-space-between align-center">
+                                    <MudText Typo="Typo.h6">@exercise.Key</MudText>
+                                    <MudText Color="Color.Primary">@roundedWeight kg</MudText>
+                                </div>
+                            </MudPaper>
+                        </MudListItem>
                     }
-                </ListGroup>
+                </MudList>
             }
-            @* Zustand 2: Workout gestartet, aber keine spezifische Übung ausgewählt *@
+
+            @* Zustand 2: Workout gestartet, keine spezifische Übung ausgewählt *@
             else if (isActive && !inExercise)
             {
-                // Anzeige der Gesamtzeit und aller Übungen mit Fortschritt
-                <CardBody>
-                    <p>@overallFormattedTime</p>
+                <MudGrid>
                     @foreach (var exercise in activeWeights)
                     {
                         double weight = exercise.Value * 2;
                         double roundedWeight = Math.Round(weight, MidpointRounding.AwayFromZero) / 2;
 
-                        if(!doneExercises.Contains(exercise.Key))
-                        {
-                            <Card Class="my-2">
-                                <CardHeader>
-                                    <h2>@exercise.Key</h2>
-                                </CardHeader>
-                                <CardBody>
-                                    <h4>Weight: @roundedWeight Kg</h4>
-                                </CardBody>
-                                <CardFooter Display="Display.Flex" Class="justify-content-center">
-                                    <Button Color="BlazorColor.Primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</Button>
-                                </CardFooter>
-                            </Card>
-                        }
-                        else
-                        {
-                            <Card Class="my-2">
-                                <CardHeader>
-                                    <h2>@exercise.Key</h2>
-                                </CardHeader>
-                                <CardBody>
-                                    <h4>Weight: @roundedWeight Kg</h4>
-                                </CardBody>
-                                <CardFooter Display="Display.Flex" Class="justify-content-center">
-                                    @* <Button Color="Color.Primary" @onclick="() => StartExercise(exercise.Key)">Start @exercise.Key</Button> *@
-                                    <Alert Color="BlazorColor.Success">
-                                        <AlertMessage>
-                                            Done
-                                        </AlertMessage>
-                                    </Alert>
-                                </CardFooter>
-                            </Card>
-                        }
-
+                        <MudItem xs="12">
+                            <MudCard Elevation="2" Class="my-2">
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.h6">@exercise.Key</MudText>
+                                        <MudText Color="Color.Secondary">@roundedWeight kg</MudText>
+                                    </CardHeaderContent>
+                                    <CardHeaderActions>
+                                        @if(doneExercises.Contains(exercise.Key))
+                                        {
+                                            <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.Check">Abgeschlossen</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Variant="Variant.Filled" 
+                                            Color="Color.Primary"
+                                            OnClick="@(() => StartExercise(exercise.Key))"
+                                            StartIcon="@Icons.Material.Filled.PlayArrow">
+                                                Übung Starten
+                                            </MudButton>
+                                        }
+                                    </CardHeaderActions>
+                                </MudCardHeader>
+                            </MudCard>
+                        </MudItem>
                     }
-                </CardBody>
+                </MudGrid>
             }
+
             @* Zustand 3: Eine spezifische Übung ist aktiv *@
             @if (isActive && inExercise)
             {
-                // Übungsname und Aufwärm-/Arbeitssätze
-                <Div Display="Display.Flex" Class="flex-column">
-                    <Div Display="Display.Flex" Class="justify-content-center">
-                        <h1>@currentExercise</h1>
-                    </Div>
-                    @if (!warmUpDone)
-                    {
-                        <Card Style="width:auto;">
-                            <CardHeader>
-                                <h3>Warm Up</h3>
-                            </CardHeader>
-                            <CardBody Display="Display.Flex" Class="justify-content-evenly">
-                                @if (!setList.Any(x => x.SetType == "warmup"))
-                                {
-                                    <ListGroup Flush>
-                                        <ListGroupItem>
-                                            <p>Not Enough weight on your working set yet.</p>
-                                        </ListGroupItem>
-                                        <ListGroupItem>
-                                            <p>No warm up needed. Jump straight to the working sets</p>
-                                        </ListGroupItem>
-                                        <ListGroupItem>
-                                            <Button Color="BlazorColor.Success" @onclick="() => warmUpDone = true">Okay</Button>
-                                        </ListGroupItem>
-                                    </ListGroup>
-                                }
-                                else
-                                {
+                <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@currentExercise</MudText>
+
+                @if (!warmUpDone)
+                {
+                    <MudCard Elevation="2" Class="mb-4">
+                        <MudCardHeader>
+                            <MudText Typo="Typo.h5">Aufwärmen</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (!setList.Any(x => x.SetType == "warmup"))
+                            {
+                                <MudAlert Severity="Severity.Info">
+                                    <MudText>Kein Aufwärmen nötig. Sie können direkt mit den Arbeitsätzen beginnen.</MudText>
+                                </MudAlert>
+                                <div class="d-flex justify-center mt-4">
+                                    <MudButton Color="Color.Success" 
+                                    Variant="Variant.Filled"
+                                    OnClick="@(() => warmUpDone = true)"
+                                    StartIcon="@Icons.Material.Filled.Check">
+                                        Verstanden
+                                    </MudButton>
+                                </div>
+                            }
+                            else
+                            {
+                                <MudGrid>
                                     @foreach (var set in setList.Where(x => x.SetType == "warmup"))
                                     {
-                                        <Card Class="mx-2">
-                                            <CardHeader Display="Display.Flex" Class="justify-content-center">
-                                                <h4>Set @set.SetNumber</h4>
-                                            </CardHeader>
-                                            <CardBody>
+                                        <MudItem xs="12" sm="6" md="4">
+                                            <MudCard Elevation="1">
+                                                <MudCardHeader>
+                                                    <CardHeaderContent>
+                                                        <MudText Typo="Typo.h6">Satz @set.SetNumber</MudText>
+                                                    </CardHeaderContent>
+                                                </MudCardHeader>
+                                                <MudCardContent>
+                                                    @if (set.IsSuccessful == null)
+                                                    {
+                                                        <MudText>Gewicht: @set.SetWeight kg</MudText>
+                                                        <MudText>Wiederholungen: @set.SetReps</MudText>
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.Check">
+                                                            Aufwärmsatz abgeschlossen
+                                                        </MudChip>
+                                                    }
+                                                </MudCardContent>
                                                 @if (set.IsSuccessful == null)
                                                 {
-                                                    <h4>Weight: @set.SetWeight Kg</h4>
-                                                    <h4>Reps: @set.SetReps</h4>
+                                                    <MudCardActions>
+                                                        <MudButton Color="Color.Success"
+                                                        Variant="Variant.Filled"
+                                                        OnClick="@(() => WarmUpSetDone(set))"
+                                                        FullWidth="true">
+                                                            Abschließen
+                                                        </MudButton>
+                                                    </MudCardActions>
                                                 }
-                                                else
-                                                {
-                                                    <Alert Color="BlazorColor.Success" Visible>
-                                                        <AlertMessage>Warm Up set Done</AlertMessage>
-                                                    </Alert>
-                                                }
-                                            </CardBody>
-                                            <CardFooter>
-                                                <Button Color="BlazorColor.Success" name="@set.SetNumber" Clicked="() => WarmUpSetDone(set)">Done</Button>
-                                            </CardFooter>
-                                        </Card>
+                                            </MudCard>
+                                        </MudItem>
                                     }
-                                }
-                            </CardBody>
-                        </Card>
-                    }
-                    else
-                    {
-                        <Card Display="Display.Flex">
-                            <CardHeader>
-                                Working Sets
-                            </CardHeader>
-                            <CardBody Display="Display.Flex">
+                                </MudGrid>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                }
+                else
+                {
+                    <MudCard Elevation="2">
+                        <MudCardHeader>
+                            <MudText Typo="Typo.h5">Arbeitsätze</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudGrid>
                                 @foreach (var set in setList.Where(x => x.SetType == "working"))
                                 {
                                     double weight = set.SetWeight * 2;
                                     double roundedWeight = Math.Round(weight, MidpointRounding.AwayFromZero) / 2;
 
-                                    <Card Class="mx-3">
-                                        <CardHeader>
-                                            @if (set.IsSuccessful.HasValue && set.IsSuccessful.Value)
+                                    <MudItem xs="12" sm="6" md="4">
+                                        <MudCard Elevation="1">
+                                            <MudCardHeader>
+                                                <CardHeaderContent>
+                                                    <MudText Typo="Typo.h6">Satz @set.SetNumber</MudText>
+                                                </CardHeaderContent>
+                                                <CardHeaderActions>
+                                                    @if (set.IsSuccessful.HasValue)
+                                                    {
+                                                        <MudChip T="string" Color="@(set.IsSuccessful.Value ? Color.Success : Color.Error)"
+                                                        Icon="@(set.IsSuccessful.Value ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)">
+                                                            @(set.IsSuccessful.Value ? "Erfolgreich" : "Nicht geschafft")
+                                                        </MudChip>
+                                                    }
+                                                </CardHeaderActions>
+                                            </MudCardHeader>
+                                            @if (set.IsSuccessful == null)
                                             {
-                                                <Div><h4>Set @set.SetNumber</h4></Div>
-                                                <Div>
-                                                    <Alert Color="BlazorColor.Success" Visible>
-                                                        <AlertMessage>Set successful!</AlertMessage>
-                                                    </Alert>
-                                                </Div>
-
+                                                <MudCardContent>
+                                                    <MudText>Gewicht: @roundedWeight kg</MudText>
+                                                    <MudText>Wiederholungen: @set.SetReps</MudText>
+                                                </MudCardContent>
+                                                <MudCardActions>
+                                                    <MudButton Color="Color.Success"
+                                                    Variant="Variant.Filled"
+                                                    OnClick="@(() => WorkingSetDone(set, true))"
+                                                    Class="mx-1">
+                                                        Geschafft
+                                                    </MudButton>
+                                                    <MudButton Color="Color.Error"
+                                                    Variant="Variant.Filled"
+                                                    OnClick="@(() => WorkingSetDone(set, false))"
+                                                    Class="mx-1">
+                                                        Nicht geschafft
+                                                    </MudButton>
+                                                </MudCardActions>
                                             }
-                                            else if (set.IsSuccessful.HasValue && !set.IsSuccessful.Value)
-                                            {
-                                                <Div>
-                                                    <h4>Set @set.SetNumber</h4>
-                                                </Div>
-                                                <Div>
-                                                    <Alert Color="BlazorColor.Danger" Visible>
-                                                        <AlertMessage>Failed set.</AlertMessage>
-                                                    </Alert>
-                                                </Div>
-
-                                            }
-                                            else
-                                            {
-                                                <h4>Set @set.SetNumber</h4>
-                                            }
-                                        </CardHeader>
-                                        @if (set.IsSuccessful == null)
-                                        {
-                                            <CardBody>
-                                                <h4>Weight: @roundedWeight Kg</h4>
-                                                <h4>Reps: @set.SetReps</h4>
-                                            </CardBody>
-                                        }
-                                        @if (set.IsSuccessful == null)
-                                        {
-                                            <CardFooter>
-                                                <Buttons>
-                                                    <Button Color="BlazorColor.Success" name="@($"success-{set.SetNumber}")" Clicked="() => {WorkingSetDone(set, true);}">Success</Button>
-                                                    <Button Color="BlazorColor.Danger" name="@($"failed-{set.SetNumber}")" Clicked="() => {WorkingSetDone(set, false);}">Failed</Button>
-                                                </Buttons>
-                                            </CardFooter>
-                                        }
-                                    </Card>
+                                        </MudCard>
+                                    </MudItem>
                                 }
-                            </CardBody>
-                            <CardFooter>
-                                <Button Color="BlazorColor.Dark" Clicked="AbortModalShow">Abort Exercise</Button>
-                                <Button Color="BlazorColor.Primary" Clicked="FinishExercise">Finish Exercise</Button>
-                            </CardFooter>
-                        </Card>
-                    }
-                </Div> 
+                            </MudGrid>
+                        </MudCardContent>
+                        <MudCardActions Class="d-flex justify-space-between pa-4">
+                            <MudButton Color="Color.Error"
+                            Variant="Variant.Outlined"
+                            OnClick="AbortModalShow"
+                            StartIcon="@Icons.Material.Filled.Close">
+                                Übung Abbrechen
+                            </MudButton>
+                            <MudButton Color="Color.Success"
+                            Variant="Variant.Filled"
+                            OnClick="FinishExercise"
+                            EndIcon="@Icons.Material.Filled.Check">
+                                Übung Abschließen
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                }
             }
-        </CardBody>
-        @if (!isActive)
-        {
-            <CardFooter Display="Display.Flex" Class="justify-content-between">
-                <Button Color="BlazorColor.Dark" @onclick="AbortWorkout">Back</Button>
-                <Button Color="BlazorColor.Primary" @onclick="ProgramStart">Start Time</Button>
-            </CardFooter>
-        }
-        @if (isActive && !inExercise)
-        {
+        </MudCardContent>
 
-            if(activeWeights.Count() == doneExercises.Count())
+        <MudDivider/>
+
+        <MudCardActions Class="pa-4">
+            @if (!isActive)
             {
-                <CardFooter Display="Display.Flex" Class="justify-content-center">
-                    <Button Color="BlazorColor.Success" @onclick="FinishWorkout">Finish Workout</Button>
-                </CardFooter>
+                <div class="d-flex justify-space-between w-100">
+                    <MudButton Color="Color.Error"
+                    Variant="Variant.Outlined"
+                    OnClick="AbortWorkout"
+                    StartIcon="@Icons.Material.Filled.ArrowBack">
+                        Zurück
+                    </MudButton>
+                    <MudButton Color="Color.Primary"
+                    Variant="Variant.Filled"
+                    OnClick="ProgramStart"
+                    EndIcon="@Icons.Material.Filled.Timer">
+                        Zeit Starten
+                    </MudButton>
+                </div>
             }
-            else
+            else if (isActive && !inExercise)
             {
-                <CardFooter Display="Display.Flex" Class="justify-content-center">
-                    <Button Color="BlazorColor.Danger" @onclick="AbortCurrent">Cancel Workout</Button>
-                </CardFooter>
+                @if(activeWeights.Count() == doneExercises.Count())
+                {
+                    <MudButton Color="Color.Success"
+                    Variant="Variant.Filled"
+                    OnClick="FinishWorkout"
+                    FullWidth="true"
+                    StartIcon="@Icons.Material.Filled.CheckCircle">
+                        Training Abschließen
+                    </MudButton>
+                }
+                else
+                {
+                    <MudButton Color="Color.Error"
+                    Variant="Variant.Outlined"
+                    OnClick="AbortCurrent"
+                    FullWidth="true"
+                    StartIcon="@Icons.Material.Filled.Cancel">
+                        Training Abbrechen
+                    </MudButton>
+                }
             }
+        </MudCardActions>
 
+        @if(isPauseActive)
+        {
+            <MudPaper Class="pa-4" Elevation="0">
+                <MudAlert Icon="@Icons.Material.Filled.Timer" Severity="Severity.Info">
+                    <MudText Typo="Typo.h6">Pause</MudText>
+                    <MudText>
+                        @if (restMinutes)
+                        {
+                            <span>3 Minuten Pause: @pauseFormattedTime</span>
+                        }
+                        else
+                        {
+                            <span>5 Minuten Pause: @pauseFormattedTime</span>
+                        }
+                    </MudText>
+                </MudAlert>
+            </MudPaper>
         }
-    </Card>
-</Div>
-
-<!-- #region Modal-->
-<Modal @ref="abortModal">
-    <ModalContent Centered>
-        <ModalHeader>
-            <ModalTitle>Cancel Exercise?</ModalTitle>
-            <CloseButton />
-        </ModalHeader>
-        <ModalBody>
-            <Alert Color="BlazorColor.Danger" Visible>
-                <AlertMessage>
-                    If you cancel the Exercise all progress will be lost!
-                </AlertMessage>
-            </Alert>
-        </ModalBody>
-        <ModalFooter>
-            <Button Color="BlazorColor.Secondary" Clicked="AbortModalHide">Cancel</Button>
-            <Button Color="BlazorColor.Primary" Clicked="@(() => {AbortExercise(); AbortModalHide();})">Abort</Button>
-        </ModalFooter>
-    </ModalContent>
-</Modal>
-<!-- #endregion -->
-
-
+    </MudCard>
+</MudContainer>
 
 @code {
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; }
+
     // ViewModel für die aktive Workout-Sitzung
     private ActiveWorkoutViewModel Model = new ActiveWorkoutViewModel();
 
@@ -294,8 +340,9 @@
     private Timer pauseTimer = new Timer();
     private int overallCurrentTime = 0;
     private int pauseCurrentTime = 0;
-    private string pauseFormattedTime => TimeSpan.FromSeconds(pauseCurrentTime).ToString(@":mm\:ss");
+    private string pauseFormattedTime => TimeSpan.FromSeconds(pauseCurrentTime).ToString(@"hh\:mm\:ss");
     private string overallFormattedTime => TimeSpan.FromSeconds(overallCurrentTime).ToString(@"hh\:mm\:ss");
+    private bool  restMinutes;
 
 
     /*
@@ -314,6 +361,7 @@
     private bool isActive = false;
     private bool inExercise = false;
     private bool warmUpDone = false;
+    private bool isPauseActive = false;
 
     // Flag zur Identifizierung eines neuen Workout-Zyklus
     private bool isNew = false;
@@ -331,28 +379,26 @@
         pauseTimer.AutoReset = true;
     }
 
-    // Timer-Callback: Aktualisiert die Anzeige jede Sekunde
-    private void OnPauseTimerElapsed(object sender, ElapsedEventArgs e)
+    private async Task<int> GetUserIdAsync()
     {
-        pauseCurrentTime++;
-        InvokeAsync(() => StateHasChanged());
-    }
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
 
-    private void OnTimerElapsed(object sender, ElapsedEventArgs e)
-    {
-        overallCurrentTime++;
-        InvokeAsync(() => StateHasChanged());
+        if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
+        {
+            return userId;
+        }
+
+        return 0; // oder einen Standardwert oder eine Exception werfen
     }
 
     // Lädt alle notwendigen Daten beim Start der Komponente
     override protected async Task OnInitializedAsync()
     {
-        // Benutzer-ID laden und im Model speichern
-        var userId = Userservice.GetCurrentUserId();
-        if(userId.Value != null)
-        {
-            Model.UserId = userId.Value;
-        }
+        // Check UserID
+        int userId = await GetUserIdAsync();
+        Model.UserId = userId;
+
 
         // Query-Parameter aus der URL auslesen (für isNew-Parameter)
         var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
@@ -361,7 +407,7 @@
         // Grundlegende Daten aus der Datenbank laden
         exercises = await appDbContext.Exercises.ToListAsync();
         workoutExercises = await appDbContext.workoutExercises.ToListAsync();
-        workouts = await appDbContext.Workouts.Where(x => x.UserId == userId).ToListAsync();
+        workouts = await appDbContext.Workouts.Where(x => x.UserId == Model.UserId).ToListAsync();
         workouts = workouts.OrderByDescending(x => x.Date).ToList();
 
         // Entscheidungslogik: Neues Workout oder Fortsetzung eines bestehenden Zyklus
@@ -374,7 +420,7 @@
             {
                 // Lädt Anfangsgewichte des Benutzers und berechnet die Trainingsgewichte
                 List<Starting_Weights> startingWeights = new List<Starting_Weights>();
-                startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
+                startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == Model.UserId).ToListAsync();
 
                 activeWeights = madCowWorkoutCalculator.CalculateFromStartingWeight(startingWeights, "medium");
 
@@ -448,13 +494,13 @@
                     foreach (var exercise in lastWorkoutExercises)
                     {
                         string name = exercise.Exercise.ExerciseName;
-                        
+
                         tempWorkingWeights = lastWorkingWeights.Where(x => x.ExerciseName == name).ToList();
                         double lastWorkingWeight = 0;
 
                         if(lastWorkingWeights != null)
                         {
-                          lastWorkingWeight = tempWorkingWeights.Max(x => x.SetWeight);
+                            lastWorkingWeight = tempWorkingWeights.Max(x => x.SetWeight);
                         }
 
                         lastExercises.Add(new ActiveExercise
@@ -466,19 +512,32 @@
                             });
                     }
                     // Berechne aktuelle Gewichte basierend auf vorherigen Gewichten
-                    activeWeights = madCowWorkoutCalculator.CalculateFromPreviousWeight(lastExercises);
+                   activeWeights = madCowWorkoutCalculator.CalculateFromPreviousWeight(lastExercises);
                 }
                 else
                 {
                     // Fallback: Wenn kein passendes früheres Workout gefunden wurde, verwende Anfangsgewichte
                     string startingLoad = Model.WorkoutLoad;
                     List<Starting_Weights>  startingWeights =new List<Starting_Weights>();
-                    startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == userId).ToListAsync();
+                    startingWeights = await appDbContext.startingWeights.Where(x => x.UserId == Model.UserId).ToListAsync();
 
                     activeWeights = madCowWorkoutCalculator.CalculateFromStartingWeight(startingWeights, startingLoad);
                 }
             }
         }
+    }
+
+    // Timer-Callback: Aktualisiert die Anzeige jede Sekunde
+    private void OnPauseTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        pauseCurrentTime++;
+        InvokeAsync(() => StateHasChanged());
+    }
+
+    private void OnTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        overallCurrentTime++;
+        InvokeAsync(() => StateHasChanged());
     }
 
     // Startet die Trainingseinheit und aktiviert den Timer
@@ -494,7 +553,7 @@
         inExercise = true;
         warmUpDone = false;
         currentExercise = exerciseName;
-        
+
         // Speichere das Maximalgewicht für diese Übung und generiere die Satzliste
         double maxWeight = activeWeights[exerciseName];
         Model.Weight = maxWeight;
@@ -507,11 +566,12 @@
     {
         int lastSet = setList.Where(x => x.SetType == "warmup").Count();
         set.IsSuccessful = true;
-        
+
         // Wenn der letzte Aufwärmsatz abgeschlossen ist, wechsle zu Arbeitssätzen
         if(set.SetNumber == lastSet)
         {
             warmUpDone = true;
+            
         }
         StateHasChanged();
     }
@@ -521,10 +581,20 @@
     {
         int lastSet = setList.Where(x => x.SetType == "working").Count();
         set.IsSuccessful = isSuccess;
-        
+        restMinutes = isSuccess;
+        if(set.SetNumber == lastSet)
+        {
+            isPauseActive = false;
+            PauseStopTimer();
+        }
+        else
+        {
+            isPauseActive = true;
+            PauseRestartTimer();
+        }
 
     }
-    
+
     // Schließt die aktuelle Übung ab und speichert die Ergebnisse in der Datenbank
     private async Task FinishExercise()
     {
@@ -582,7 +652,7 @@
                 };
             appDbContext.workoutExercises.Add(workoutExercise);
         }
-        
+
         // Speichere die Änderungen in der Datenbank
         try
         {
@@ -593,7 +663,7 @@
             Console.WriteLine(e);
             throw;
         }
-        
+
         // Zurück zur Übungsauswahl und markiere diese Übung als erledigt
         inExercise = false;
         doneExercises.Add(exercise);
@@ -604,6 +674,9 @@
     private void AbortExercise()
     {
         inExercise = false;
+        isPauseActive = false;
+        PauseStopTimer();
+        pauseCurrentTime = 0;
     }
 
     // Bricht das gesamte Workout ab und löscht den heutigen Workout-Eintrag
@@ -631,29 +704,46 @@
         navigationManager.NavigateTo("/");
         OverallResetTimer();
     }
-    
+
     // Timer-Steuerungsfunktionen
     private void OverallStartTimer() => overallTimer.Start();
-    private void OverallStopTimer() => overallTimer.Stop();
-    
+    private void PauseStopTimer() => pauseTimer.Stop();
+
+    private void PauseStartTimer()
+    {
+        pauseTimer.Start();
+    }
+
     private void OverallResetTimer()
     {
         overallTimer.Stop();
         overallCurrentTime = 0;
         StateHasChanged();
     }
-    
-    #region
-    private Modal abortModal;
 
-    private Task AbortModalShow()
+    private void PauseRestartTimer()
     {
-        return abortModal.Show();
+        pauseTimer.Stop();
+        pauseCurrentTime = 0;
+        PauseStartTimer();
+        StateHasChanged();
     }
-    private Task AbortModalHide()
+
+    private async Task AbortModalShow()
     {
-        return abortModal.Hide();
+        var parameters = new DialogParameters();
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small
+        };
+
+        var dialog = await DialogService.ShowAsync<AbortExerciseDialog>("Übung Abbrechen", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            AbortExercise();
+        }
     }
-    #endregion
-    
 }

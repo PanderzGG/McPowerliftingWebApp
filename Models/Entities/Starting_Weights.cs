@@ -1,8 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
-
-namespace MCPowerlifting.Models.Entities
+namespace MudCowV2.Models.Entities
 {
     [Table("starting_weights")]
     public class Starting_Weights
